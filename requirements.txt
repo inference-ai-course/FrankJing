@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+openai
+python-multipart
+whisper
+transformers
+edge_tts
+
