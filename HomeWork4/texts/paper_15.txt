@@ -1,0 +1,1708 @@
+arXiv:cs/9811008v1  [cs.CL]  2 Nov 1998
+In Proceedings Proceedings of the AMTA/SIG-IL Second Workshop on Interlinguas, Langhorne, PA, October 1998, pp. 23-30.
+Translating near-synonyms: Possibilities and preferences in the interlingua
+Philip Edmonds
+Department of Computer Science
+University of Toronto
+Toronto, Canada M5S 3G4
+pedmonds@cs.toronto.edu
+1
+Introduction
+This paper argues that an interlingual representation
+must explicitly represent some parts of the meaning of
+a situation as possibilities (or preferences), not as neces-
+sary or deﬁnite components of meaning (or constraints).
+Possibilities enable the analysis and generation of nu-
+ance, something required for faithful translation. Fur-
+thermore, the representation of the meaning of words is
+crucial, because it speciﬁes which nuances words can
+convey in which contexts.
+In translation it is rare to ﬁnd the exact word that
+faithfully and directly translates a word of another lan-
+guage.
+Often, the target language will provide many
+near-synonyms for a source language word that differ
+(from the target word and among themselves) in nuances
+of meaning. For example, the French fournir could be
+translated as provide, supply, furnish, offer, volunteer, af-
+ford, bring, and so on, which differ in ﬁne-grained as-
+pects of denotation, emphasis, and style. (Figures 1 and 2
+show some of the distinctions.) But none of these options
+may carry the right nuances to match those conveyed by
+fournir in the source text; unwanted extra nuances may
+be conveyed, or a desired nuance may be left out. Since
+an exact match is probably impossible in many situa-
+tions, faithful translation will require uncovering the nu-
+ances conveyed by a source word and then determining
+how the nuances can be conveyed in the target language
+by appropriate word choices in any particular context.
+The inevitable mismatches that occur are one type of
+translation mismatch—differences of meaning, but not
+of form, in the source and target language (Kameyama
+et al., 1991).1
+1A separate class of difference, translation divergence, involves dif-
+ferences in the form of the source and target texts and results from
+lexical gaps in the target language (in which no single word lexical-
+izes the meaning of a source word), and from syntactic and colloca-
+tional constraints imposed by the source language. ‘Paraphrasing’ the
+source text in the target language is required in order to preserve the
+meaning as much as possible (Dorr, 1994; Stede, 1996; Elhadad et al.,
+1997). But even when paraphrasing, choices between near-synonyms
+will have to be made, so, clearly, translation mismatches and translation
+divergences are not independent phenomena. Just as standard semantic
+content can be incorporated or spread around in different ways, so can
+nuances of meaning.
+Provide may suggest foresight and stress the idea of making
+adequate preparation for something by stocking or ship-
+ping . . .
+Supply may stress the idea of replacing, of making up what is
+needed, or of satisfying a deﬁciency.
+Furnish may emphasize the idea of ﬁtting something or some-
+one with whatever is necessary, or sometimes, normal or
+desirable.
+Figure 1: An abridged entry from Webster’s New Dictio-
+nary of Synonyms (Gove, 1973).
+Offer and volunteer may both refer to a generous extending
+of aid, services, or a desired item. Those who volunteer
+agree by free choice rather than by submission to selec-
+tion or command.
+Figure 2: An abridged entry from Choose the Right
+Word (Hayakawa, 1994).
+2
+Near-synonyms across languages
+This section examines how near-synonyms can differ
+within and across languages. I will discuss some of the
+speciﬁc problems of lexical representation in an interlin-
+gual MT system using examples drawn from the French
+and English versions of the multi-lingual text provided
+for this workshop.
+To be as objective as possible, I’ll rely on several
+dictionaries of synonym discrimination including, for
+English, Gove (1973) and Hayakawa (1994), and for
+French, Bailly (1970), B´enac (1956), and Batchelor and
+Offord (1993). Unless otherwise stated, the information
+on differences below comes from one of these reference
+books.
+Notation: Below, ‘english :: french’ indicates that the
+pair of words or expressions english and french corre-
+spond to one another in the multi-lingual text (i.e., they
+are apparent translations of each other).
+Fine-grained denotational mismatches
+If a word has near-synonyms, then they most likely
+differ in ﬁne-grained aspects of denotation. Consider the
+following pairs:
+
+1.
+provides :: fournit
+2.
+provided :: apportaient
+3.
+provide :: offrir
+4.
+brought :: fournissait
+5.
+brought :: se chargeait
+These all share the basic meaning of giving or mak-
+ing available what is needed by another, but each adds
+its own nuances.
+And these are not the only words
+that the translator could have used: in English, furnish,
+supply, offer, and volunteer would have been possibil-
+ities; in French, approvisionner, munir, pourvoir, nan-
+tir, pr´esenter, among others, could have been chosen.
+The differences are complex and often language-speciﬁc.
+Figures 1 and 2 discuss some of the differences between
+the English words, and ﬁgures 3 and 4 those between
+the French words. And this is the problem for transla-
+tion: none of the words match up exactly, and the nu-
+ances they carry when they are actually used are context-
+dependent. (Also notice that the usage notes are vague in
+many cases, using words like ‘may’ and ‘id´ee’.)
+Consider this second example:
+6a.
+began :: amorc´e
+b.
+began :: commenc¸a
+c.
+started :: au d´ebut
+Amorcer implies a beginning that prepares for something
+else; there is no English word that carries the same nu-
+ance, but begin appears to be the closest match. Com-
+mencer also translates as begin, although commencer is
+a general word in French, implying only that the thing
+begun has a duration. In English, begin differs from start
+in that the latter can imply a setting out from a certain
+point after inaction (in opposition to stop).
+More pairings that exhibit similar ﬁne-grained denota-
+tional differences include these:
+7a.
+broaden :: ´elargir
+b.
+expand :: ´etendre
+c.
+increase :: accroˆıtre
+8a.
+transformation :: passer
+b.
+transition :: transition
+9.
+enable:: permettre
+10.
+opportunities:: perspectives
+11.
+assistance :: assistance
+There are two main problems in representing the
+meanings of these words. First, although some of the
+nuances could be represented by simple features, such as
+‘foresight’ or ‘generous’, most of them cannot because
+they are complex and have an ‘internal’ structure. They
+are concepts that relate aspects of the situation. For ex-
+ample, for furnish, ‘ﬁtting someone with what is nec-
+essary’ is not a simple feature; it involves a concept of
+Fourni a rapport `a la quantit´e et ce dit de ce qui `a sufﬁsamment
+ou en abondance le n´ecessaire.
+Muni et arm´e sont relatifs `a l’´etat d’une chose rendue forte ou
+capable, muni, plus g´en´erale, annonc¸ant un secours pour
+faire quoi que ce soit.
+Pourvu comporte un id´ee de pr´ecaution et ce dit bien en par-
+lant des avantages naturels donn´es par une sorte de ﬁnalit´e
+. . .
+Nanti, muni d’un gage donn´e par un d´ebiteur `a son cr´eancier,
+par ext. muni par pr´ecaution et, absolumment, assez en-
+richi pour ne pas craindre l’avenir.
+Figure 3: An abridged entry from B´enac (1956).
+Offrir, c’est faire hommage d’une chose `a quelqu’un, en man-
+ifestant le d´esir qu’il l’accepte, aﬁn que l’offre devienne
+un don.
+Pr´esenter, c’est offrir une chose que l’on tient `a la main ou
+qui est l`a sous les yeux et dont la personne peut `a l’instant
+prendre possession.
+Figure 4: An abridged entry from Bailly (1970).
+‘ﬁtting’, a patient (the same patient that the overall sit-
+uation has), a thing that is provided, and the idea of
+the necessity of that thing to someone. Thus, many nu-
+ances must be represented as fully-ﬂedged concepts (or
+instances thereof) in an interlingua.
+Second, many of the nuances are merely suggested or
+implied, if they are conveyed at all. That is, they are
+conveyed indirectly—the reader has the license to decide
+that such a nuance was unintended—and as such are not
+necessary conditions for the deﬁnition of the words. This
+has ramiﬁcations for both the analysis of the source text
+and the generation of the target text because one has to
+determine how strongly a certain nuance is intended, if at
+all (in the source), and then how it should be conveyed,
+if it can be, in the target language. One should seek to
+translate indirect expressions as such, and avoid making
+them direct. One must also avoid choosing a target word
+that might convey an unwanted implication. In any case,
+aspects of word meaning that are indirect must be repre-
+sented as such in the lexicon.
+Coarse-grained denotational mismatches
+Sometimes the translator chooses a target word that is se-
+mantically quite different from the source word, yet still
+conveys the same basic idea. Considering pair 5, above:
+bring seems to mean to carry as a contribution, and se
+charger to take responsibility for.
+Perhaps there are
+no good equivalents in the opposite languages for these
+terms, or alternatively, the words might have been cho-
+sen because of syntactic or collocational preferences—
+they co-occur with leadership :: l’administration, which
+are not close translations either.
+In fact, the desire to use natural-sounding syntactic
+
+and collocational structures is probably responsible for
+many of these divergences. In another case, the pair fac-
+tors :: raisons occurs perhaps because the translator did
+not want to literally translate the expressions Many fac-
+tors contributed to :: Parmi les raisons de.
+Such mis-
+matches are outside the scope of this paper, because they
+fall more into the area of translation divergences. (See
+Smadja et al. (1996) for research on translating colloca-
+tions.)
+Stylistic mismatches
+Words can also differ on many stylistic dimensions, but
+formality is the most recognized dimension.2 Consider
+the following pairs:
+12a.
+plans :: entend bien
+b.
+plan :: envisagent de
+While the French words differ in formality (entend bien
+is formal, and envisagent de is neutral), the same word
+was chosen in English. Note that the other French words
+that could have been chosen also differ in formality: se
+proposent de has intermediate formality, and comptent,
+avont l’intention, and proj`etent de are all neutral.
+Similarly, in 6, above, amorcer is more formal than
+commencer. Considering the other near-synonyms: the
+English commence and initiate are quite formal, as is the
+French initier. D´ebuter and d´emarrer are informal, yet
+both are usually translated by begin, a neutral word in
+English. (Notice also that the French cognate of the for-
+mal English commence, commencer, is neutral.)
+Style, which can be conveyed by both the words and
+the structure of a text, is best represented as a global
+property in an interlingual representation. That way, it
+can inﬂuence all decisions that are made. (It is probably
+not always necessary to preserve the style of particular
+words across languages.)
+A separate issue of style in this text is its use of techni-
+cal or domain-speciﬁc vocabulary. Consider the follow-
+ing terms used to refer to the subject of the text:
+13a.
+institution :: institution
+b.
+institution :: ´etablissement
+c.
+institution :: association
+d.
+joint venture :: association
+e.
+programme:: association
+f.
+bank :: ´etablissement
+g.
+bank :: banque
+In French, it appears that association must be used to re-
+fer to non-proﬁt companies and ´etablissement or banque
+for their regulated (for-proﬁt) counterparts. In English
+institution, among other terms, is used for both. Con-
+sider also the following pairs:
+2Hovy (1988) suggests others including force and ﬂoridity, and Di-
+Marco et al. (1993) suggest concreteness or vividness.
+Actually, it
+seems that the French text is more vivid—if a text on banking can be
+considered vivid at all—than the English, using words such as baptis´ee,
+´eclatant, contagieux, and d´emunis.
+14a.
+seed capital :: capital initial
+b.
+working capital :: fonds de roulement
+c.
+equity capital:: capital social
+Attitudinal mismatches
+Words also differ in the attitude that they express. For ex-
+ample, of poor :: d´emunis, poor can express a derogatory
+attitude, but d´emunis (which can be translated as impov-
+erished) probably expresses a neutral attitude. Consider
+also people of indigenous background :: Indiens. Atti-
+tudes must be included in the interlingual representation
+of an expression, and they must refer to the speciﬁc par-
+ticipant(s) about whom the speaker is expressing an atti-
+tude.
+3
+Representing near-synonyms
+Before I discuss the requirements of the interlingual rep-
+resentation, I must ﬁrst discuss how the knowledge of
+near-synonyms ought to be modelled if we are to account
+for the complexities of word meaning in an interlingua.
+In the view taken here, the lexicon is given the central
+role as bridge between natural language and interlingua.
+The conventional model of lexical knowledge, used
+in many computational systems, is not suitable for rep-
+resenting the ﬁne-grained distinctions between near-
+synonyms (Hirst, 1995).
+In the conventional model,
+knowledge of the world is represented by ostensibly
+language-neutral concepts that are often organized as an
+ontology. The denotation of a lexical item is represented
+as a concept, or a conﬁguration of concepts, and amounts
+to a direct word-to-concept link. So except for polysemy
+and (absolute) synonymy, there is no logical difference
+between a lexical item and a concept. Therefore, words
+that are nearly synonymous have to be linked each to
+their own slightly different concepts. The problem comes
+in trying to represent these slightly different concepts and
+the relationships between them. Hirst (1995) shows that
+one ends up with an awkward proliferation of language-
+dependent concepts, contrary to the interlingual function
+of the ontology. And this assumes we can even build a
+representative taxonomy from a set of near-synonyms to
+begin with.
+Moreover, the denotation of a word is taken to em-
+body the necessary and sufﬁcient conditions for deﬁning
+the word. While this has been convenient for text anal-
+ysis and lexical choice, since a denotation can be used
+as an applicability condition of the word, the model is
+inadequate for representing the nuances of meaning that
+are conveyed indirectly, which, clearly, are not necessary
+conditions.
+An alternative representation is suggested by the prin-
+ciple behind Gove’s (1973) synonym usage notes. Words
+are grouped into a entry if they have the same essential
+meaning, i.e., that they “can be deﬁned in the same terms
+up to a certain point” (p. 25a) and differ only in terms of
+minor ideas involved in their meanings. We combine this
+principle with Saussure’s paradigmatic view that “each
+
+liefern
+stellen
+furnish
+offer
+supply
+versehen
+offrir
+apporter
+versorgen
+provide
+pourvoir
+munir
+fournir
+approvisionner
+French
+English
+MAKING-AVAILABLE
+EVENT
+TRANSFERRING-POSSESSION
+GIVING-SOMETHING
+German
+Figure 5: The clustered model of lexical knowledge.
+of a set of synonyms ... has its particular value only be-
+cause they stand in contrast with one another” (Saussure,
+1983, p. 114) and envision a representation in which the
+meaning of a word arises out of a combination of its es-
+sential denotation (shared with other words) and a set of
+explicit differences to its near-synonyms.
+Thus, I propose a clustered model of lexical knowl-
+edge, depicted in ﬁgure 5. A cluster has two levels of
+representation: a core concept and peripheral concepts.
+The core concept is a denotation as in the conventional
+model—a conﬁguration of concepts (that are deﬁned in
+the ontology) that functions as a necessary applicabil-
+ity condition (for choice)—but it is shared by the near-
+synonyms in the cluster. In the ﬁgure, the ontological
+concepts are shown as rectangles; in this case all three
+clusters denote the concept of MAKING-AVAILABLE. All
+of the peripheral concepts that the words may differ
+in denoting, suggesting, or emphasizing are also repre-
+sented as conﬁgurations of concepts, but they are explic-
+itly distinguished from the core concept as indirect mean-
+ings that can be conveyed or not depending on the con-
+text. In the ﬁgure, the differences between words (in a
+single language) are shown as dashed lines; not all words
+need be differentiated. Stylistic, attitudinal, and colloca-
+tional factors are also encoded in the cluster.
+Each language has its own set of clusters.
+Corre-
+sponding clusters (across languages) need not have the
+same peripheral concepts since languages may differen-
+tiate their synonyms in entirely different terms. Differ-
+ences across languages are represented, for convenience,
+by dashed lines between clusters, though these would not
+be used in pure interlingual MT. Essentially, a cluster is
+a language-speciﬁc formal usage note, an idea originated
+by DiMarco et al. (1993) that Edmonds (forthcoming) is
+formalizing.
+4
+Interlingual representation
+Crucially, an interlingual representation should not be
+tied to any particular linguistic structure, whether lexi-
+cal or syntactic.
+Assuming that one has constructed an ontology or do-
+main model (of language-neutral concepts), an interlin-
+gual representation of a situation is, for us, an instan-
+tiation of part of the domain knowledge. Both Stede
+(1996) and Elhadad et al. (1997) have developed such
+formalisms for representing the input to natural language
+generation applications (the former to multilingual gen-
+eration), but they are applicable to interlingual MT as
+well. The formalisms allow their applications to para-
+phrase the same input in many ways including realiz-
+
+ing information at different syntactic ranks and cover-
+ing/incorporating the input in different ways. For them,
+generation is a matter of satisfying two types of con-
+straints: (1) covering the whole input structure with a set
+of word denotations (thereby choosing the words), and
+(2) building a well-formed syntactic structure out of the
+words. But while their systems can provide many options
+to choose from, they lack the complementary ability to
+actually choose which is the most appropriate.
+Now, ﬁnding the most appropriate translation of a
+word involves a tradeoff between many possibly conﬂict-
+ing desires to express certain nuances in certain ways,
+to establish the right style, to observe collocational pref-
+erences, and to satisfy syntactic constraints. This sug-
+gests that lexical choice is not a matter of satisfying con-
+straints (i.e., of using the necessary applicability condi-
+tions of a word), but rather of attempting to meet a large
+set of preferences. Thus, a distinction must be made be-
+tween knowledge that should be treated as preferences as
+opposed to constraints in the interlingual representation.
+In the generation stage of MT, one attempts to choose
+the near-synonym from a cluster (activated because of
+the constraints) whose peripheral concepts best meet the
+most preferences.
+Turning to the analysis stage of MT, since many nu-
+ances are expressed indirectly and are inﬂuenced by the
+context, one cannot know for sure whether they have
+been expressed unless one performs a very thorough
+analysis. Indeed, it might not be possible for even a thor-
+ough analysis to decide whether a nuance was expressed,
+or how indirectly it was expressed, given the context-
+dependent nature of word meaning. Thus, on the basis of
+the knowledge of what words can express, stored in the
+clusters, the analysis stage would output an interlingual
+representation that includes possibilities of what was ex-
+pressed. The possibilities then become preferences dur-
+ing generation.
+5
+Examples
+Figures 6–9 give examples of interlingual representations
+for four segments of the text that involve some of the
+words discussed in section 2. Since my focus is on word
+meanings, I will not give complete representations of the
+expressions. Also note that while I use speciﬁc ontologi-
+cal concepts in these descriptions, this in no way implies
+that I claim these are the right concepts to represent—in
+fact, some are quite crude. A good ontology is crucial
+to MT, and I assume that such an ontology will in due
+course be constructed.
+I have used attribute-value structures, but any equiv-
+alent formalism would do. Square brackets enclose re-
+cursive structures of instantiations of ontological con-
+cepts. Names of instances are in lowercase; concepts
+are capitalized; relations between instances are in up-
+percase; and cross-reference is indicated by a digit in
+a square.
+A whole interlingual representation is sur-
+rounded by brace brackets and consists of exactly one
+speciﬁcation of the situation and any number of possi-
+bilities, attitudes, and stylistic preferences. The ‘situa-
+tion’ encodes the information one might ﬁnd in a tradi-
+tional interlingual representation—the deﬁnite portion of
+meaning to be expressed. A ‘possibility’ takes as a value
+a four-part structure of (1) frequency (never, sometimes,
+or always), which represents the degree of possibility;
+(2) strength (weak, medium, or strong), which represents
+how strongly the nuance is conveyed; (3) type (emphasis,
+suggestion, implication, or denotation), which represents
+how the nuance is conveyed; and (4) an instance of a con-
+cept. The ‘style’ and ‘attitude’ attributes should be self-
+explanatory. As for content, some of the meanings were
+discussed in section 2, and the rest are derived from the
+aforementioned dictionaries. Comments (labelled with
+‘%’) are included to indicate which words gave rise to
+which possibilities.
+6
+Conclusion
+This paper has motivated the need to represent possibili-
+ties (or preferences) in addition to necessary components
+(or constraints) in the interlingual representation of a sit-
+uation. Possibilities are required because words can con-
+vey a myriad of sometimes indirect nuances of meaning
+depending on the context. Some examples of how one
+could represent possibilities were given.
+Acknowledgements
+For comments and advice, I thank Graeme Hirst. This
+work is ﬁnancially supported in part by the Natural Sci-
+ences and Engineering Research Council of Canada.
+References
+Ren´e Bailly. 1970. Dictionnaire des synonymes de la
+langue franc¸aise. Paris Larousse.
+Ronald E. Batchelor and Malcolm H. Offord. 1993. Us-
+ing French Synonyms. Cambridge University Press.
+Henri B´enac. 1956. Dictionnaire des synonymes. Paris
+Hachette.
+Chrysanne DiMarco, Graeme Hirst, and Manfred Stede.
+1993. The semantic and stylistic differentiation of
+synonyms and near-synonyms. In AAAI Spring Sym-
+posium on Building Lexicons for Machine Translation,
+pages 114–121, Stanford, CA, March.
+Bonnie J. Dorr. 1994. Machine translation divergences:
+A formal description and proposed solution. Compu-
+tational Linguistics, 20(4):597–634.
+Philip Edmonds. forthcoming. Semantic Representa-
+tions of Near-Synonyms for Automatic Lexical Choice.
+Ph.D. thesis, Department of Computer Science, Uni-
+versity of Toronto.
+Michael Elhadad, Kathleen McKeown, and Jacques
+Robin. 1997. Floating constraints in lexical choice.
+Computational Linguistics, 2(23):195–240.
+Philip B. Gove, editor. 1973. Webster’s New Dictionary
+of Synonyms. G. & C. Merriam Co.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+situation
+
+
+provide1
+instance-of MakingAvailable
+AGENT 1
+"
+accion-international
+instance-of NonProﬁtOrganization
+#
+OBJECT
+
+
+assistance1
+instance-of Helping
+ATTRIBUTE
+"
+technical1
+instance-of Technical
+#
+
+
+RECIPIENT 2
+"
+network
+instance-of Network
+#
+
+
+possibility
+
+
+
+
+
+
+
+
+frequency sometimes
+type suggestion
+concept
+
+
+foresight1
+instance-of Foreseeing
+AGENT 1
+
+
+
+
+
+
+
+
+
+
+% from the word ‘provides’
+possibility
+
+
+
+
+
+
+
+
+
+
+
+
+
+frequency sometimes
+type emphasis
+concept
+
+
+prepare1
+instance-of Preparing
+AGENT 1
+ATTRIBUTE
+"
+adequate
+instance-of Adequacy
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% from ‘provides’
+possibility
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+frequency always
+type suggestion
+concept
+
+
+subordinate-status
+instance-of Status
+DEGREE
+"
+subordinate
+instance-of Subordinate
+#
+ATTRIBUTE-OF 1
+RELATIVE-TO 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% from ‘assistance’
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+“ACCION International ... provides technical assistance to a network ...”
+“ACCION International ... fournit une assistance technique `a un r´eseau ...”
+Figure 6: Interlingual representation of the ‘equivalent’ sentences shown above. Includes four possibilities of what is
+expressed.
+S. I. Hayakawa, editor. 1994. Choose the Right Word: A
+Contemporary Guide to Selecting the Precise Word for
+Every Situation. HarperCollins Publishers, New York.
+Graeme Hirst. 1995. Near-synonymy and the structure
+of lexical knowledge. In AAAI Symposium on Repre-
+sentation and Acquisition of Lexical Knowledge: Poly-
+semy, Ambiguity, and Generativity, pages 51–56, Stan-
+ford, CA, March.
+Eduard Hovy. 1988. Generating Natural Language Un-
+der Pragmatic Constraints. Lawrence Erlbaum Asso-
+ciates.
+Megumi Kameyama, Ryo Ochitani, Stanley Peters, and
+Hidetoshi Sirai.
+1991.
+Resolving translation mis-
+matches with information ﬂow. In Proceedings of the
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+situation
+
+
+provide2
+instance-of MakingAvailable
+AGENT 1
+"
+prodem-venture
+instance-of NonProﬁtJointVenture
+#
+RECIPIENT 2
+"
+workers
+instance-of Worker
+#
+OBJECT
+
+
+credit-and-training
+instance-of CreditAndTraining
+AGENT-OF 3
+
+
+broaden
+instance-of Increasing
+PATIENT 4
+
+
+opportunity
+instance-of Chance
+POSSESSED-BY 2
+REGARDING 5
+"
+employment
+instance-of Employment
+#
+
+
+
+
+
+
+
+
+possibility
+
+
+
+
+
+
+
+
+frequency sometimes
+type implication
+concept
+
+
+scope
+instance-of Scope
+MANNER-OF 3
+
+
+
+
+
+
+
+
+
+
+% from the word ‘broaden’
+possibility
+
+
+
+
+
+
+
+
+type implication
+concept
+
+
+desire
+instance-of Desiring
+AGENT 2
+PATIENT 5
+
+
+
+
+
+
+
+
+
+
+% from ‘opportunities’
+possibility
+
+
+
+
+
+
+
+
+
+
+
+
+frequency sometimes
+strength weak
+type suggestion
+concept
+
+
+provoke
+instance-of Provoking
+AGENT 4
+PATIENT 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% from ‘opportunities’
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+“PRODEM ... provided credit and training to broaden employment opportunities ...”
+“PRODEM ... d’offrir ... des possibilit´es de cr´edit et de formation pour ´elargir leurs perspectives d’emploi”
+Figure 7: Another interlingual representation with possibilities of what is expressed.
+29th Annual Meeting of the Association for Computa-
+tional Linguistics, pages 193–200.
+Ferdinand de Saussure. 1983. Course in General Lin-
+guistics. G. Duckworth, London. Translation by Roy
+Harris of Cours de linguistique g´en´erale, 1916.
+Frank Smadja, Kathleen McKeown, and Vasileios Hatzi-
+vassiloglou. 1996. Translating collocations for bilin-
+gual lexicons: A statistical approach. Computational
+Linguistics, 22(1):1–38.
+Manfred Stede.
+1996.
+Lexical paraphrases in mul-
+tilingual sentence generation. Machine Translation,
+11:75–107.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+situation 1
+
+
+begin
+instance-of Beginning
+OBJECT
+"
+transition
+instance-of StateChange
+#
+TIME
+"
+year-1989
+instance-of Year
+#
+
+
+possibility
+
+
+
+
+
+
+type implication
+concept
+
+
+prepare2
+instance-of Preparing
+AGENT 1
+
+
+
+
+
+
+
+
+% from ‘amorc´ee’
+style
+
+formality
+
+level high
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+“The transition ... began in 1989.”
+“La transition, amorc´ee en 1989 ...”
+Figure 8: Interlingual representation with a stylistic preference (for high formality).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+situation 1
+
+
+workers
+instance-of Worker
+ATTRIBUTE
+
+
+poor
+instance-of Poor
+DEGREE
+h
+high
+i
+
+
+ATTRIBUTE
+"
+self-employed
+instance-of EmploymentStatus
+#
+
+
+attitude
+ 
+type neutral
+of 1
+!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+“the very poor self-employed”
+“travailleurs ind´ependents les plus d’´emunis”
+Figure 9: Interlingual representation with an expressed attitude.

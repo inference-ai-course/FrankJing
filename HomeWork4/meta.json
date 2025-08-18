@@ -1,0 +1,11 @@
+{
+  "created_at": "2025-08-18T00:13:17.283645Z",
+  "model": "all-MiniLM-L6-v2",
+  "dim": 384,
+  "num_chunks": 905,
+  "params": {
+    "chunk_size": 512,
+    "overlap": 50,
+    "batch_size": 64
+  }
+}

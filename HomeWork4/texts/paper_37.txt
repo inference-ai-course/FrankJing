@@ -1,0 +1,596 @@
+arXiv:cs/9906020v1  [cs.CL]  22 Jun 1999
+Temporal Meaning Representations in a
+Natural Language Front-End
+Ion Androutsopoulos
+Software and Knowledge Engineering Laboratory
+Institute of Informatics and Telecommunications
+National Centre for Scientiﬁc Research “Demokritos”
+153 10 Ag. Paraskevi, Athens, Greece
+e-mail: ionandr@iit.demokritos.gr
+Abstract
+Previous work in the context of natural language querying of temporal databases
+has established a method to map automatically from a large subset of English time-
+related questions to suitable expressions of a temporal logic-like language, called top.
+An algorithm to translate from top to the tsql2 temporal database language has also
+been deﬁned. This paper shows how top expressions could be translated into a simpler
+logic-like language, called bot. bot is very close to traditional ﬁrst-order predicate logic
+(fopl), and hence existing methods to manipulate fopl expressions can be exploited
+to interface to time-sensitive applications other than tsql2 databases, maintaining the
+existing English-to-top mapping.
+1
+Introduction
+Time is an important research issue in linguistics (e.g. [7], [8], [19]), logics (e.g. [12], [28]),
+and computer systems (e.g. temporal databases [26] [27]). In [3] and [4] a framework that
+integrates ideas from these three areas was proposed in the context of natural language
+querying of temporal databases. This framework consists of: (i) a formally deﬁned logic-
+like language, dubbed top, (ii) a systematic mapping from a large and rich in temporal
+phenomena subset of English to top, based on the widely used hpsg grammar theory
+[20] [21], and (iii) an algorithm to translate from top to tsql2, tsql2 being a recent
+temporal extension of the sql database language that has been proposed by the temporal
+databases community [24]. The framework allows written time-related English questions to
+be answered automatically, by converting them into top and then tsql2 expressions, and
+executing the resulting tsql2 queries. The framework improves on previous approaches to
+natural language querying of temporal databases (e.g. [6], [10]), mainly in terms of linguistic
+coverage, existence of formal deﬁnitions, and implementation (see [3] and [4] for details).1
+This paper shows how top expressions can be translated automatically into a simpler
+logic-like representation language, called bot. bot is very close to traditional ﬁrst-order
+predicate logic (fopl). Hence, existing methods to manipulate fopl expressions can be ex-
+ploited, to interface to time-sensitive applications other than tsql2 databases (e.g. hybrids
+1A prototype implementation of this framework is freely available from http://www.dai.ed.ac.uk/
+groups/nlp.
+
+of standard sql and Prolog databases [5] [11] [15], or planners [9]), maintaining the existing
+English-to-top linguistic front-end. The mapping from top to bot is also expected to
+make the linguistic front-end easier to interface to forthcoming new temporal sql versions
+[25], as bot is much simpler than top, and hence establishing a mapping from bot to a
+new database language is easier than from top.
+This paper focuses on top, bot, and the mapping from top to bot. Information about
+other aspects of the work mentioned above, including the English-to-top mapping, can
+be found in [3] and [4]. The remainder of this paper is organised as follows: Section 2
+introduces top, Section 3 presents bot, Section 4 describes the top-to-bot mapping, and
+Section 5 concludes. Formal deﬁnitions of top and bot can be found in Appendices A and
+B respectively. Appendix C provides a full list of the translation rules that are used in the
+top-to-bot mapping.
+2
+The TOP language
+This section introduces informally top, the logic-like language English questions are initially
+translated into. A formal deﬁnition of the syntax and semantics of top can be found in
+Appendix A. top was designed to support the systematic representation of English time-
+related semantics, rather than inferencing (contrary to the logics of e.g. [1], [14], [16], [17]).
+Hence, although in many ways similar to traditional temporal logics, top is not a full logic,
+as it provides no proof theory.
+top atomic formulae are constructed by applying predicate symbols to constants and
+variables. More complex formulae are constructed using conjunctions and temporal oper-
+ators (top is an acronym for Temporal OPerators). For example, (1) is represented by
+the top formula (2). The “v” suﬃx marks variables, and free variables (e.g. the ev in (2))
+are treated as quantiﬁed by an implicit existential quantiﬁer with scope over the entire
+formula. top currently provides no disjunction, negation, or explicit quantiﬁcation mecha-
+nisms, as these were not needed for the linguistic phenomena that the work being reported
+here focused on. Such mechanisms can be added easily in future top versions.
+(1)
+Was tank 5 empty on 1/1/98?
+(2)
+At[1/1/98, Past[ev, empty(tank5)]]
+Roughly speaking, the verb tense in (1) introduces a Past operator, which requires
+empty(tank5) to have been empty at some past time ev, and the “at 1/1/98” adverbial
+introduces an At operator, which requires that past time to fall within 1/1/98. (Unlike
+Priorean operators [22], top’s Past and At operators do not shift the time where their
+argument is expected to hold.
+They simply accumulate restrictions on what this time
+can be. This is explained further below.) Assuming that 1/1/98 falls in the past, the Past
+operator of (2) is actually redundant, since any time that falls within 1/1/98 will also belong
+to the past. It is important to realise, however, that the mapping from English to top is
+carried out automatically. This mapping introduces a Past operator when encountering the
+past tense, to ensure that a sentence like (3), where no adverbial is present, is represented
+correctly (as in (4)).
+(3)
+Tank 5 was empty.
+(4)
+Past[ev, empty(tank5)]]
+
+The combination of At and Past operators in (2) also accounts for the oddity of (1) when
+uttered before 1/1/98. The oddity of (1) can be attributed to the fact that in this case
+the At and Past operators introduce incompatible restrictions (no past time can fall within
+1/1/98 if the question is uttered before 1/1/98).
+Temporal operators are used in top (much as in [9]) to introduce compact chunks of
+semantics, in a manner that makes it easier to track the semantic contribution of each
+linguistic mechanism.
+No claim is made that top is more expressive than (or even as
+expressive as) other temporal representation formalisms (e.g. [22]), though it should be
+noted that top is part of a complete path from English to an application formalism (tsql2),
+which is not available with most other temporal representation formalisms.
+Time in top is linear, discrete and bounded [12] [28].
+Following Reichenbach [23],
+formulae are evaluated with respect to three times: speech time (st), event time (et), and
+localisation time (lt). Intuitively, st is the time when the question is submitted, et is the
+time when the situation of the formula holds, and lt is a temporal window that contains et.
+(top’s lt is diﬀerent from Reichenbach’s reference time, and closer to the “location time”
+of [13].) st is a time-point, while et and lt are generally periods. “Period” is used here to
+refer to what logicians usually call “intervals”, i.e. convex sets of time-points.
+In (1), the answer will be aﬃrmative if (2) evaluates to true. When evaluating a formula,
+lt initially covers the entire time, but it can be narrowed down by temporal operators. In
+(2), the At and Past operators narrow lt to its intersection with 1/1/98 and [tfirst, st)
+respectively, where tfirst is the beginning of time. Assuming that 1/1/98 lies entirely in
+the past, the resulting lt is 1/1/98. The formula evaluates to true iﬀthere is an et where
+empty(tank5) is true, and et ⊑lt. (p1 is a subperiod of p2, written p1 ⊑p2 iﬀp1, p2 are
+periods and p1 ⊆p2.)
+The semantics of top guarantee that top predicates are always homogeneous, meaning
+that if a predicate is true at some et, it will also be true at any other et′ ⊑et. (A similar
+notion of homogeneity is used in [2].) In (2), if tank 5 was empty from 30/12/97 to 10/1/98
+(dates are shown in the dd/mm/yy format), empty(tank5) will be true at any et that is a
+subperiod of that period. Hence, there will be an et that is a subperiod of 1/1/98 (the lt)
+where empty(tank5) holds, and (2) will evaluate to true. The reading of (1) that requires
+the tank to have been empty throughout 1/1/98, which is easier to grasp in the aﬃrmative
+(5), is expressed as (6). The Fills operator requires et to cover the entire lt.
+(5)
+Tank 5 was empty on 1/1/98.
+(6)
+At[1/1/98, Past[ev, Fills[empty(tank5)]]]
+The remainder of this section illustrates the use of some of top’s temporal operators,
+narrowing the discussion to the representation of yes/no single-clause questions. To save
+space, some of top’s mechanisms, including those that are used to represent wh-questions
+(e.g. “Which tanks were empty on 1/1/98?”) and multiple clauses (e.g. “Which ﬂights were
+circling while BA737 was landing?”), are not covered (see [3] and [4] for the full details).
+With verbs that refer to situations with inherent climaxes [18] [29], non-progressive
+tenses introduce an additional Culm operator, which requires et to be the period from the
+point where the situation ﬁrst started to the point where the situation last stopped, and
+the situation to reach its climax at the end of et. For example, (7) and (9) are mapped
+to (8) and (10) respectively. (10) requires the building to have been completed, and the
+entire building to have taken place within 1997. In contrast, (8) simply requires part of the
+bulding to have been ongoing in 1997.
+
+(7)
+Was HouseCorp building bridge 2 in 1997?
+(8)
+At[1997, Past[ev, buiding(housecorp, bridge2)]]
+(9)
+Did HouseCorp build bridge 2 in 1997?
+(10) At[1997, Past[ev, Culm[building(housecorp, bridge2)]]]
+Questions referring to present situations are represented using the Pres operator, which
+simply requires st to fall within et. (11), for example, is represented as (12).
+(11) Is tank 5 empty?
+(12) Pres[empty(tank5)]
+The Perf operator is used to express the perfective aspect of questions like (13). The
+Perf operator introduces a new event time (denoted by e2v in (14)) that must precede
+the original one (e1v). In (14), the inspection time (e2v) must precede another past time
+(e1v). The latter corresponds to Reichenbach’s reference time [23], a time that serves as a
+view-point.
+(13) Had J. Adams inspected BA737?
+(14) Past[e1v, Perf [e2v, Culm[inspecting(jadams, ba737)]]]
+In (15), the “on 1/1/95” may refer to either the inspection time or the reference time. The
+two readings are represented by (16) and (17) respectively (the English to top mapping
+generates both).
+(15) Had J. Adams inspected BA737 on 1/1/95?
+(16) Past[e1v, Perf [e2v, At[1/1/95, Culm[inspecting(jadams, ba737)]]]]
+(17) At[1/1/95, Past[e1v, Perf [e2v, Culm[inspecting(jadams, ba737)]]]]
+The Ntense operator (borrowed from [9]) is useful in questions like (18), where “the
+president” may refer to either the present or the 1995 president. The two readings are
+captured by (19) and (20) respectively. In (20), the ev arguments of the Past and Ntense
+operators are used to ensure that both president(pv) and visiting(pv, athens) hold at the
+same time.2
+(18) Did the president visit Athens in 1995?
+(19) Ntense[now, president(pv)] ∧At[1995, Past[ev, visiting(pv, athens)]]
+(20) Ntense[ev, president(pv)] ∧At[1995, Past[ev, visiting(pv, athens)]]
+The reading of (21) that asks if tank 5 was empty at some time after 5:00 pm is rep-
+resented as (22). The Part operator forces f v to range over 5:00pm-times, and the After
+operator requires the past et where tank 5 is empty to follow f v.
+(21) Was tank 5 empty after 5:00pm?
+2The ev arguments of the Past and Perf operators are also used in time-asking questions. Consult [3]
+and [4] for related discussion.
+
+(22) Part[5:00pm, f v] ∧After[f v, Past[ev, empty(tank5)]]
+In practice, (21) would be uttered in a context where previous discourse has established a
+temporal window that contains a single 5:00pm-time, and “at 5:00pm” would refer to that
+time. This anaphoric use of “at 5:00pm” can be captured by setting the initial value of lt
+to the discourse-deﬁned window, rather than the entire time-axis.
+Finally, durations can be speciﬁed with the For operator.
+(23) is mapped to (24),
+which requires 45 consecutive minute-periods to exist, and the ﬂight to have been circling
+throughout the concatenation of these periods.
+(23) Was BA737 circling for 45 minutes?
+(24) For[minute, 45, Past[ev, circling(ba737)]]
+3
+The BOT language
+Let us now turn to bot, the simpler formal language top expressions are subsequently
+translated into. bot is essentially the traditional ﬁrst-order predicate logic (fopl), with
+some special terms and predicates to refer to time-points and periods. As in top, bot
+assumes that time is discrete, linear, and bounded.
+For simplicity, the same constant and predicate symbols are used as in the corresponding
+top expressions.
+It is assumed, however, that bot predicates that correspond to top
+predicates have an additional argument, whose denotations range over the maximal event-
+time periods where the corresponding top predicates hold.
+For example, (1) could be
+represented in bot as (25) (cf. (2)).
+(25) empty(tank5, pv) ∧subper(ev, pv) ∧
+subper(ev, intersect(intersect([beg, end], 1/1/98), [beg, now)))
+(25) requires pv to denote a maximal period where the tank was empty, and ev to be
+a subperiod of both pv and the intersection of 1/1/98 with the past. ev corresponds to
+the event time of (2), and intersect(intersect([beg, end], 1/1/98), [beg, now)) emulates top’s
+localisation time, initially the entire time-axis, which has been narrowed to cover past points
+within 1/1/98. (beg, end, and now denote the beginning of time, end of time, and speech
+time respectively, intersect denotes set intersection, and square and round brackets are used
+to specify the boundaries of periods in the usual manner.) As in top, free variables are
+treated as existentially quantiﬁed.
+A special bot predicate symbol part, similar to top’s Part operator, allows variables
+to range over families of periods. In (27), for example, m1v and m2v range over minute-
+periods. earliest and latest are used to refer to the earliest and latest time-points of a period,
+succ steps forward one-time point, and eq requires the denotations of its arguments to be
+identical. (27) requires a 2-minute long ev period to exist, and ev to fall within the past and
+be a subperiod of a maximal period pv where tank 5 was empty. As in (25), intersect pred-
+icates are used to emulate top’s localisation time (here, intersect([beg, end], [beg, now))).
+(27) represents (26).
+(26) Was tank 5 empty for two minutes?
+(27) part(minute, m1v) ∧part(minute, m2v) ∧eq(earliest(m1v), earliest(ev)) ∧
+eq(succ(latest(m1v)), earliest(m2v)) ∧eq(latest(m2v), latest(ev)) ∧
+empty(tank5, pv) ∧subper(ev, pv) ∧subper(ev, intersect([beg, end], [beg, now)))
+
+The semantics of bot is much simpler than top, though bot formulae tend to be much
+longer, and hence diﬃcult to grasp, than the corresponding top ones. The syntax and
+semantics of bot are deﬁned formally in Appendix B.
+4
+Translating from TOP to BOT
+top formulae are translated systematically into bot using a set of rewrite rules of the form:
+trans(φ1, ε, λ) = φ2
+where φ1 is a top formula, φ2 is a bot formula (possibly containing recursive invocations
+of other translation rules), and ε, λ are bot expressions representing top’s event and lo-
+cation times respectively. There are base (non-recursive) translation rules for atomic top
+formulae, and recursive translation rules for conjunctions and each one of top’s operators.
+For example, the translation rule for top’s At operator is (28).
+(28) trans(At[τ, φ], ε, λ) = period(τ) ∧trans(φ, ε, intersect(λ, τ))
+The translation rules essentially express in terms of bot constructs the semantics of the
+corresponding top constructs.
+(28), for example, narrows the localisation time to the
+intersection of its original value with the denotation of τ, which must be a period, mirroring
+the semantics of top’s At operator (see Appendix A). φ is then translated into bot using
+the new value of the localisation time.
+When translating from top to bot, λ is initially set to [beg, end], which corresponds
+to the initial value of top’s localisation time. ε is set to a new variable, a variable that
+has not been used in any other expression. This reﬂects the fact that top’s event time is
+initially allowed to be any period (see the deﬁnition of denotation w.r.t. M, st in Appendix
+A). For example, to compute the bot translation of (1), one would invoke (28) as in (29),
+where etv is a new variable that stands for the event time.
+(29) trans(At[1/1/98, Past[ev, empty(tank5)]], etv, [beg, end]) =
+period(1/1/98) ∧trans(Past[ev, empty(tank5)], etv, intersect([beg, end], 1/1/98)
+The translation rules for top’s Past operator and predicates are shown in (30) and (31)
+respectively. The rule for Past narrows the localisation time to the past, and requires β to
+point to the event time. (The β argument of top’s Past operator is useful in time-asking
+questions, which are not covered in this paper.) The rule for predicates requires the event
+time to be a subperiod of both the localisation time and of a maximal period where the
+predicate holds (here β is a new variable).
+These are, again, in accordance with top’s
+semantics. The reader is reminded that bot predicates that correspond to predicates in
+the top formula have an additional argument (β in (31)), which ranges over the maximal
+event-time periods where the corresponding top predicate holds.
+(30) trans(Past[β, φ], ε, λ) = eq(β, ε) ∧trans(φ, ε, intersect(λ, [beg, now)))
+(31) trans(π(τ1, . . . , τn), ε, λ) = subper(ε, λ) ∧π(τ1, . . . , τn, β) ∧subper(ε, β)
+Using (30) and (31), the right-hand side of (29) becomes (32). The right-hand side of
+(32) is the ﬁnal result of the translation, which is essentially the same as the hand-crafted
+(25). (The additional etv variable and period predicate, do not contribute signiﬁcantly in
+this case, but they are needed to prove the correctness of the automatic translation.)
+
+(32) period(1/1/98) ∧eq(ev, etv) ∧
+trans(empty(tank5), etv, intersect(intersect([beg, end], 1/1/98), [beg, now))) =
+period(1/1/98) ∧eq(ev, etv) ∧
+subper(etv, intersect(intersect([beg, end], 1/1/98), [beg, now))) ∧
+empty(tank5, pv) ∧subper(etv, pv)
+As explained in section 2, top’s Culm operator requires the event time to be the period
+from the point where the situation described by Culm’s argument ﬁrst started to the point
+where it last stopped, and the situation to reach its climax at the end of the event time.
+To be able to translate top formulae containing Culm operators, we assume two map-
+pings η1 and η2 from predicate functors to new (unused elsewhere) predicate functors. If
+π(τ1, . . . , τn) is a predicate in a top formula, η1(π)(τ1, . . . , τn) is a bot predicate intended
+to be true if the situation of π(τ1, . . . , τn) reached its climax at the point where it last
+stopped. η2(π)(τ1, . . . , τn, ε) is another bot predicate, where ε denotes the period from the
+ﬁrst to the last point where the situation of π(τ1, . . . , τn) was ongoing. The translation rule
+for Culm is (33).
+(33) trans(Culm[π(τ1, . . . , τn)], ε, λ) = subper(ε, λ) ∧η1(π)(τ1, . . . , τn) ∧η2(π)(τ1, . . . , τn, ε)
+Using (28), (30), (33), and assuming η1(building) = cmp building and η2(building) =
+max building, the top formula of (10) (which represents (9)) is translated into bot as in
+(34).
+(34) trans(At[1997, Past[ev, Culm[building(housecorp, bridge2)]]], etv, [beg, end]) =
+period(1997) ∧
+trans(Past[ev, Culm[building(housecorp, bridge2)]], etv, intersect([beg, end], 1997)) =
+period(1997) ∧eq(ev, etv) ∧
+trans(Culm[building(housecorp, bridge2)], etv,
+intersect(intersect([beg, end], 1997), [beg, now))) =
+period(1997) ∧eq(ev, etv) ∧
+subper(etv, intersect(intersect([beg, end], 1997), [beg, now))) ∧
+cmp building(housecorp, bridge2) ∧max building(housecorp, bridge2)
+Like (10), (34) requires the period from the point where the building ﬁrst started to the
+point where it last stopped to fall completely within the past and within 1997. Furthermore,
+the building must have reached its completion at the end of that period.
+A complete list of the top to bot translation rules can be found in Appendix C. Al-
+though beyond the scope of this paper, a formal proof of the correctness of the top to
+bot translation rules could be produced by showing that the denotations of the source top
+expressions are identical to the denotations of the resulting bot expressions by induction
+on the syntactic complexity of the top expressions. The same strategy was used in [3] to
+prove formally the correctness of the top-to-tsql2 translation rules (see [4] for a summary
+of the proof).
+5
+Conclusions
+This paper has shown how an existing mapping from English to a complex temporal mean-
+ing representation formalism (top) can be coupled with a mapping from that formalism to
+a simpler one (bot). The simpler formalism is very close to traditional ﬁrst-order predicate
+
+logic, making it possible to exploit existing techniques to interface to time-sensitive appli-
+cations other than tsql2 databases, while maintaining the existing linguistic front-end.
+Acknowledgements
+Part of the work reported here was carried out at the Division of Informatics of the Univer-
+sity of Edinburgh, with support from the Greek State Scholarships foundation, under the
+supervision of Graeme Ritchie and Peter Thanisch.
+References
+[1] J.F. Allen. Maintaining Knowledge about Temporal Intervals. Communications of the
+ACM, 26(11):832–843, 1983.
+[2] J.F. Allen. Towards a General Theory of Action and Time. Artiﬁcial Intelligence,
+23:123–154, 1984.
+[3] I. Androutsopoulos. A Principled Framework for Constructing Natural Language In-
+terfaces to Temporal Databases.
+PhD thesis, Department of Artiﬁcial Intelligence,
+University of Edinburgh, 1996.
+[4] I. Androutsopoulos, G.D. Ritchie, and P. Thanisch. Time, Tense and Aspect in Natural
+Language Database Interfaces. Natural Language Engineering, 4(3):229–276, 1998.
+[5] S. Ceri, G. Gottlob, and G. Wiederhold. Eﬃcient Database Access from Prolog. IEEE
+Transactions on Software Engineering, 15(2):153–163, 1989.
+[6] J. Cliﬀord. Formal Semantics and Pragmatics for Natural Language Querying. Cam-
+bridge Tracts in Theoretical Computer Science, Cambridge University Press, 1990.
+[7] B. Comrie. Aspect. Cambridge University Press, 1976.
+[8] B. Comrie. Tense. Cambridge University Press, 1985.
+[9] R.S. Crouch and S.G. Pulman. Time and Modality in a Natural Language Interface to
+a Planning System. Artiﬁcial Intelligence, 63:265–304, 1993.
+[10] S. De, S. Pan, and A.B. Whinston. Temporal Semantics and Natural Language Pro-
+cessing in a Decision Support System. Information Systems, 12(1):29–47, 1987.
+[11] C. Draxler. Accessing Relational and Higher Databases through Database Set Predicates
+in Logic Programming Languages. PhD thesis, University of Zurich, 1992.
+[12] D.M. Gabbay, I. Hodkinson, and M. Reynolds. Temporal Logic: Mathematical Foun-
+dations and Computational Aspects. Oxford University Press, 1994.
+[13] H. Kamp and U. Reyle. From Discourse to Logic. Kluer Academic Publishers, 1993.
+[14] R. Kowalski and M. Sergot.
+A Logic-based Calculus of Events.
+New Generation
+Computing, 4:67–95, 1986.
+[15] R. Lucas. Database Applications Using Prolog. Halsted Press, 1988.
+
+[16] J. McCarthy and P.J. Hayes. Some Philosophical Problems from the Standpoint of
+Artiﬁcial Intelligence. In Machine Intelligence 4, pages 463–502. Edinburgh University
+Press, 1969.
+[17] D. McDermott. A Temporal Logic for Reasoning about Processes and Plans. Cognitive
+Science, 6:101–155, 1982.
+[18] M. Moens and M. Steedman. Temporal Ontology and Temporal Reference. Computa-
+tional Linguistics, 14(2):15–28, 1988.
+[19] T. Parsons. Events in the Semantics of English: A Study in Subatomic Semantics.
+MIT Press, 1990.
+[20] C. Pollard and I.A. Sag. Information-Based Syntax and Semantics – Volume 1, Fun-
+damentals. Center for the Study of Language and Information, Stanford, 1987.
+[21] C. Pollard and I.A. Sag.
+Head-Driven Phrase Structure Grammar.
+University of
+Chicago Press and Center for the Study of Language and Information, Stanford., 1994.
+[22] A. Prior. Past, Present and Future. Oxford University Press, 1967.
+[23] H. Reichenbach. Elements of Symbolic Logic. Collier-Macmillan, London, 1947.
+[24] R.T. Snodgrass, editor.
+The TSQL2 Temporal Query Language. Kluwer Academic
+Publishers, 1995.
+[25] R.T. Snodgrass, M. Boehlen, C.S. Jensen, and A. Steiner. Transitioning Temporal
+Support in TSQL2 to SQL3. In O. Etzion and S. Sripada, editors, Temporal Databases:
+Research and Practice, pages 150 – 194. Springer-Verlag, Berlin, 1998.
+[26] A. Tansel, J. Cliﬀord, S.K. Gadia, S. Jajodia, A. Segev, and R.T. Snodgrass. Temporal
+Databases – Theory, Design, and Implementation. Benjamin/Cummings, California,
+1993.
+[27] V.J. Tsotras and A. Kumar. Temporal Database Bibliography Update. ACM SIGMOD
+Record, 25(1), 1996.
+[28] J.F.A.K. van Benthem. The Logic of Time. D. Reidel Publishing Company, Dordrecht,
+Holland, 1983.
+[29] Z. Vendler. Verbs and Times. In Linguistics in Philosophy, chapter 4, pages 97–121.
+Cornell University Press, Ithaca, NY, 1967.
+
+Appendix
+A
+Deﬁnition of the TOP language
+This section deﬁnes the syntax and semantics of the subset of top that was introduced in
+this paper. See [3] and [4] for a full deﬁnition of top.
+A.1
+Syntax of TOP
+The syntax of top is deﬁned below using bnf.
+Angle brackets are used to group bnf
+elements.
+“∗” denotes zero or more repetitions.
+“+” denotes one or more repetitions.
+Terminal symbols are in lower case, possibly with an initial capital. Non-terminals are in
+upper case. The distinguished symbol is YNFORMS.
+YNFORMS →AFORMS | YNFORMS ∧YNFORMS
+| Pres[YNFORMS] | Past[VARS, YNFORMS] | Perf [VARS, YNFORMS]
+| Culm[LITERAL] | At[TERMS, YNFORMS]
+| Before[TERMS, YNFORMS] | After[TERMS, YNFORMS]
+| Ntense[VARS, YNFORMS] | Ntense[now, YNFORMS]
+| For[CPARTS, VQTY , YNFORMS] | Fills[YNFORMS]
+AFORMS →LITERAL | Part[PARTS, VARS]
+LITERAL →PFUNS({TERMS, }∗TERMS)
+TERMS →CONS | VARS
+PARTS →CPARTS | GPARTS
+VQTY →1 | 2 | 3 | . . .
+PFUNS, CPARTS, GPARTS, CONS, and VARS are disjoint open classes of terminal
+symbols.
+A.2
+Semantics of TOP
+Temporal ontology
+A point structure ⟨PTS, ≺⟩is assumed, where PTS is the set of time-points, and ≺is a
+binary, transitive, irreﬂexive relation over PTS × PTS. Time is assumed to be discrete,
+bounded, and linear [12] [28]. tfirst and tlast are the earliest and latest time-points respec-
+tively.
+prev(t) and next(t) are used to refer to the immediately previous and following
+time-points of a t ∈PTS. For S ⊆PTS, minpt(S) and maxpt(S) denote the earliest and
+latest time-points in S.
+A period p over ⟨PTS, ≺⟩is a non-empty subset of PTS. Periods are convex, i.e. if
+t1, t2 ∈p, t3 ∈PTS, and t1 ≺t3 ≺t2, then t3 ∈p. PERIODS is the set of all periods over
+⟨PTS, ≺⟩. p1 is a subperiod of p2 (written p1 ⊑p2), iﬀp1, p2 ∈PERIODS and p1 ⊆p2. p1
+is a proper subperiod of p2 (written p1 ⊏p2), iﬀp1, p2 ∈PERIODS and p1 ⊂p2. The usual
+notational conventions apply when specifying the boundaries of periods; e.g. (t1, t2] is an
+abbreviation for {t ∈PTS | t1 ≺t ⪯t2}.
+If S is a set of periods, then mxlpers(S) is the set of maximal periods of S. mxlpers(S) ≡
+{p ∈S | for no p′ ∈S is it true that p ⊏p′}.
+
+TOP model
+A top model M is an ordered 7-tuple:
+M = ⟨⟨PTS, ≺⟩, OBJS, fcons, fpfuns, fculms, fgparts, fcparts⟩
+where ⟨PTS, ≺⟩is the point structure, PERIODS ⊆OBJS, and fcons, fpfuns, fculms, fgparts,
+and fcparts are as speciﬁed below:
+OBJS is a set containing all the objects in the modelled world that can be denoted by
+top terms, and fcons is a function CONS 7→OBJS. Intuitively, fcons maps each constant
+to the object it denotes.
+fpfuns maps each π ∈PFUNS to a function (OBJS)n 7→pow(PERIODS). It is assumed
+that each predicate symbol π ∈PFUNS is used with a particular arity (number of argu-
+ments) n. pow(S) denotes the powerset (set of all subsets) of S. For every π ∈PFUNS and
+every ⟨o1, o2, . . . , on⟩∈(OBJS)n, it must be true that:
+if p1, p2 ∈fpfuns(π)(o1, o2, . . . , on) and p1 ∪p2 ∈PERIODS, then p1 = p2
+Intuitively, fpfuns shows the maximal periods where the situation represented by π(τ1, . . . , τn)
+holds.
+fculms is a function that maps each π ∈PFUNS to a function (OBJS)n 7→{T, F}.
+Intuitively, fculms shows whether or not a situation reaches a climax at the latest time-point
+where it is ongoing.
+fgparts is a function that maps each element of GPARTS to a gappy partitioning. A
+gappy partitioning is a subset S of PERIODS, such that for every p1, p2 ∈S, p1 ∩p2 = ∅,
+and S
+p∈S p ̸= PTS. fcparts is a function that maps each element of CPARTS to a complete
+partitioning.
+A complete partitioning is a subset S of PERIODS, such that for every
+p1, p2 ∈S, p1 ∩p2 = ∅, and S
+p∈S p = PTS.
+Variable assignment
+A variable assignment w.r.t. a top model M is a function g : VARS 7→OBJS. GM, or
+simply G, is the set of all possible variable assignments w.r.t. M.
+TOP denotation w.r.t. M, st, et, lt, g
+Non-terminal symbols of the top bnf are used here as names of sets that contain expressions
+which can be analysed syntactically as the corresponding non-terminals.
+An index of evaluation is an ordered 3-tuple ⟨st, et, lt⟩, such that st ∈PTS, et ∈
+PERIODS, and lt ∈PERIODS ∪{∅}.
+The denotation of a top expression ξ w.r.t. a model M, an index of evaluation ⟨st, et, lt⟩,
+and a variable assignment g, is written ∥ξ∥M,st,et,lt,g or simply ∥ξ∥st,et,lt,g. When the deno-
+tation of ξ does not depend on st, et, and lt, we may write ∥ξ∥M,g or simply ∥ξ∥g.
+• If κ ∈CONS, then ∥κ∥g = fcons(κ).
+• If β ∈VARS, then ∥β∥g = g(β).
+• If φ ∈YNFORMS, then ∥φ∥st,et,lt,g ∈{T, F}.
+
+• If π(τ1, τ2, . . . , τn) ∈LITERAL, then ∥π(τ1, τ2, . . . , τn)∥st,et,lt,g = T iﬀet ⊑lt and for
+some pmxl ∈fpfuns(π)(∥τ1∥g, ∥τ2∥g, . . . , ∥τn∥g), et ⊑pmxl.
+• If φ1, φ2 ∈YNFORMS, then ∥φ1 ∧φ2∥st,et,lt,g = T iﬀ∥φ1∥st,et,lt,g = ∥φ2∥st,et,lt,g = T.
+• ∥Part[σ, β]∥g = T iﬀg(β) ∈f(σ) (where f = fcparts if σ ∈CPARTS, and f = fgparts
+if σ ∈GPARTS).
+• ∥Pres[φ]∥st,et,lt,g = T, iﬀst ∈et and ∥φ∥st,et,lt,g = T.
+• ∥Past[β, φ]∥st,et,lt,g = T, iﬀg(β) = et and ∥φ∥st,et,lt∩[tfirst,st),g = T.
+• ∥Culm[π(τ1, . . . , τn)]∥st,et,lt,g = T, iﬀet ⊑lt, fculms(π)(∥τ1∥g, . . . , ∥τn∥g) = T, S ̸= ∅,
+and et = [minpt(S), maxpt(S)], where:
+S =
+[
+p∈fpfuns(π)(∥τ1∥g,...,∥τn∥g)
+p
+• ∥At[τ, φ]∥st,et,lt,g = T, iﬀ∥τ∥g ∈PERIODS and ∥φ∥st,et,lt∩∥τ∥g,g = T.
+• ∥Before[τ, φ]∥st,et,lt,g = T, iﬀ∥τ∥g ∈PERIODS and ∥φ∥st,et,lt∩[tfirst,minpt(∥τ∥g)),g = T.
+• ∥After[τ, φ]∥st,et,lt,g = T, iﬀ∥τ∥g ∈PERIODS and ∥φ∥st,et,lt∩(maxpt(∥τ∥g),tlast],g = T.
+• ∥Fills[φ]∥st,et,lt,g = T, iﬀet = lt and ∥φ∥st,et,lt,g = T.
+• ∥Ntense[β, φ]∥st,et,lt,g = T, iﬀfor some et′ ∈PERIODS, g(β) = et′ and
+∥φ∥st,et′,PTS,g = T.
+• ∥Ntense[now∗, φ]∥st,et,lt,g = T, iﬀ∥φ∥st,{st},PTS,g = T.
+• ∥For[σc, νqty, φ]∥st,et,lt,g = T, iﬀ∥φ∥st,et,lt,g = T, and for some p1, p2, . . . , pνqty ∈
+fcparts(σc), it is true that minpt(p1) = minpt(et), next(maxpt(p1)) = minpt(p2),
+next(maxpt(p2)) = minpt(p3), . . . , next(maxpt(pνqty−1)) = minpt(pνqty), and
+maxpt(pνqty) = maxpt(et).
+• ∥Perf [β, φ]∥st,et,lt,g = T, iﬀet ⊑lt, and for some et′ ∈PERIODS, it is true that
+g(β) = et′, maxpt(et′) ≺minpt(et), and ∥φ∥st,et′,PTS,g = T.
+TOP denotation w.r.t. M, st
+The denotation of φ w.r.t. M, st, written ∥φ∥M,st or simply ∥φ∥st, is deﬁned only for φ ∈
+YNFORMS:
+• If φ ∈YNFORMS, then ∥φ∥st =
+– T, if for some g ∈G and et ∈PERIODS, ∥φ∥st,et,PTS,g = T,
+– F, otherwise
+
+B
+Deﬁnition of the BOT language
+B.1
+Syntax of BOT
+The syntax of bot is deﬁned using bnf, with the same conventions as in the deﬁnition of
+top. The distinguished symbol is YNFORMSB.
+YNFORMSB →AFORMSB | YNFORMSB ∧YNFORMSB
+AFORMS B →LITERALB | subper(PEREX, PEREX ) | eq(TERMS B, TERMS B)
+| period(TERMS B) | part(PARTS, TERMS B)
+LITERALB →PFUNS({TERMS B, }∗TERMS B)
+TERMS B →CONS | VARS | PEREX | PTEX
+PARTS →CPARTS | GPARTS
+PTEX →beg | now | end | earliest(PEREX ) | latest(PEREX )
+| succ(PTEX ) | prec(PTEX , PTEX)
+PEREX →[PTEX, PTEX ] | [PTEX , PTEX ) | (PTEX , PTEX ]
+| (PTEX, PTEX ) | intersect(PEREX, PEREX )
+PFUNS, CPARTS, GPARTS, CONS, and VARS are disjoint open classes of terminal
+symbols that do not contain any of the other bot terminal symbols. The same symbols for
+PFUNS, PARTS, CPARTS, GPARTS, CONS, VARS are used as in the deﬁnition of top,
+because these classes are the same in both languages.
+B.2
+Semantics of BOT
+bot assumes the same temporal ontology as top.
+BOT model
+A bot model M is an ordered 6-tuple:
+MB = ⟨⟨PTS, ≺⟩, OBJS, fcons, f B
+pfuns, fgparts, fcparts⟩
+where ⟨PTS, ≺⟩is the point structure, and OBJS, fcons, fgparts, and fcparts is are as in top.
+f B
+pfuns is as a function that maps every π ∈PFUNS to a function OBJS n 7→{T, F}, where
+n is the arity of π.
+Variable assignment
+A variable assignment for bot is a function g : VARS 7→OBJS, as in top. G has the same
+meaning as in top.
+BOT denotation w.r.t. M, st, g
+The denotation of a bot expression ξ w.r.t. a bot model MB, a speech time st ∈PTS,
+and a g ∈G, written ∥ξ∥MB,st,g or simply ∥ξ∥st,g, is deﬁned as follows:
+• If κ ∈CONS, then ∥κ∥st,g = fcons(κ).
+
+• ∥beg∥st,g = tfirst, ∥now∥st,g = st, ∥end∥st,g = tlast.
+• ∥earliest(τ)∥st,g = minpt(∥τ∥st,g). ∥latest(τ)∥st,g = maxpt(∥τ∥st,g).
+• ∥[ξ1, ξ2)∥st,g = {t ∈PTS
+|
+∥ξ1∥st,g ⪯t ≺∥ξ2∥st,g}. The denotations of [ξ1, ξ2],
+(ξ1, ξ2], and (ξ1, ξ2) are deﬁned similarly.
+• ∥intersect(ξ1, ξ2)∥st,g = ∥ξ1∥st,g ∩∥ξ2∥st,g.
+• ∥succ(ξ)∥st,g = next(∥ξ∥st,g).
+• ∥prec(ξ1, ξ2)∥st,g is T if ∥ξ1∥st,g ≺∥ξ2∥st,g and F otherwise.
+• If β ∈VARS, then ∥β∥st,g = g(β).
+• If φ ∈YNFORMSB, then ∥φ∥st,g ∈{T, F}.
+• If π(τ1, τ2, . . . , τn) ∈LITERALB, then ∥π(τ1, τ2, . . . , τn)∥st,g =
+f B
+pfuns(π)(∥τ1∥st,g, ∥τ2∥st,g, . . . , ∥τn∥st,g).
+• If φ1, φ2 ∈YNFORMSB, then ∥φ1 ∧φ2∥st,g = T iﬀ∥φ1∥st,g = T and ∥φ2∥st,g = T.
+• ∥part(σ, β)∥st,g = T iﬀg(β) ∈f(σ) (where f = fcparts if σ ∈CPARTS, and f = fgparts
+if σ ∈GPARTS).
+• ∥eq(τ1, τ2)∥st,g = T iﬀ∥τ1∥st,g = ∥τ2∥st,g.
+• ∥subper(ξ1, ξ2)∥st,g = T iﬀ∥ξ1∥st,g ⊑∥ξ2∥st,g.
+• ∥period(τ)∥st,g = T iﬀ∥τ∥st,g ∈PERIODS.
+BOT denotation w.r.t. M, st
+The denotation of φ w.r.t. MB, st, written ∥φ∥MB,st or simply ∥φ∥st, is deﬁned only for
+φ ∈YNFORMSB:
+• If φ ∈YNFORMSB, then ∥φ∥st =
+– T, if for some g ∈G, ∥φ∥st,g = T,
+– F, otherwise
+C
+TOP to BOT translation rules
+• If π ∈PFUNS and τ1, . . . , τn ∈TERMS, then:
+trans(π(τ1, . . . , τn), ε, λ) = subper(ε, λ) ∧π(τ1, . . . , τn, β) ∧subper(ε, β),
+where β is a new variable.
+• trans(φ1 ∧φ2, ε, λ) = trans(φ1, ε, λ) ∧trans(φ2, ε, λ).
+• trans(Part[σ, β], ε, λ) = part(σ, β).
+• trans(Pres[φ], ε, λ) = subper([now, now], ε) ∧trans(φ, ε, λ).
+• trans(Past[β, φ], ε, λ) = eq(β, ε) ∧trans(φ, ε, intersect(λ, [beg, now))).
+
+• trans(Culm[π(τ1, . . . , τn)], ε, λ) = subper(ε, λ)∧η1(π)(τ1, . . . , τn)∧η2(π)(τ1, . . . , τn, ε),
+where η1, η2 are as in section 4.
+• trans(At[τ, φ], ε, λ) = period(τ) ∧trans(φ, ε, intersect(λ, τ)).
+• trans(Before[τ, φ], ε, λ) = period(τ) ∧trans(φ, ε, intersect(λ, [beg, minpt(τ)))).
+• trans(After[τ, φ], ε, λ) = period(τ) ∧trans(φ, ε, intersect(λ, (maxpt(τ), end])).
+• trans(Fills[φ], ε, λ) = eq(ε, λ) ∧trans(φ, ε, λ).
+• trans(Ntense[β, φ], ε, λ) = period(β) ∧trans(φ, β, [beg, end]).
+• trans(Ntense[now, φ], ε, λ) = trans(φ, [now, now], [beg, end]).
+• trans(For[σc, νqty, φ], ε, λ) =
+part(σc, β1) ∧part(σc, β2) ∧· · · ∧part(σc, βνqty)∧
+eq(earliest(β1), earliest(ε)) ∧eq(succ(latest(β1)), earliest(β2)) ∧
+eq(succ(latest(β2)), earliest(β3)) ∧· · · ∧eq(succ(latest(βνqty−1)), earliest(βνqty) ∧
+eq(latest(βνqty), latest(ε)) ∧trans(φ, ε, λ), where β1, β2, . . . , βνqty are new variables.
+• trans(Perf [β, φ], ε, λ) =
+subper(ε, λ) ∧period(β) ∧prec(latest(β), earliest(ε)) ∧trans(φ, β, [beg, end]).

@@ -1,0 +1,1060 @@
+arXiv:cs/9809022v1  [cs.CL]  17 Sep 1998
+Modelling Users, Intentions, and Structure in Spoken Dialog
+Bernd Ludwig, G¨unther G¨orz, and Heinrich Niemann
+March 31, 2018
+Abstract
+We outline how utterances in dialogs can be interpreted using a partial ﬁrst order logic.
+We exploit the capability of this logic to talk about the truth status of formulae to deﬁne a
+notion of coherence between utterances and explain how this coherence relation can serve for
+the construction of AND/OR trees that represent the segmentation of the dialog. In a BDI
+model we formalize basic assumptions about dialog and cooperative behaviour of participants.
+These assumptions provide a basis for inferring speech acts from coherence relations between
+utterances and attitudes of dialog participants. Speech acts prove to be useful for determin-
+ing dialog segments deﬁned on the notion of completing expectations of dialog participants.
+Finally, we sketch how explicit segmentation signalled by cue phrases and performatives is
+covered by our dialog model.
+1
+Introduction
+During the last years, a large number of spoken language dialog systems have been developed
+whose functionality normally is restricted to a certain application domain. [SadMor97] give an
+quite extensive overview of existing implementations.
+Only few systems for generating dialog managers exist or are under development currently.
+These tools identify task and discourse structure and describe it by means of ﬁnite state au-
+tomata. Using these tools one can easily and quickly implement spoken language human-machine
+communication for simple tasks. Nevertheless, this approach lacks theoretical suﬃciency for a
+large number of phenomena occurring frequently in natural language dialogs. [SadMor97] state
+that “these limitations rule out these approaches as a basis for computational models of intelligent
+interaction”.
+Recently, there has been some research on extracting dialog structure out of annotated corpora
+([Moe97]); algorithms for learning probability distributions of speech acts are used in this case. The
+estimated distributions serve as a basis for generating stochastic models for sequences of speech
+acts. But in this case, exploring common elements of dialogs in diﬀerent domains is substituted
+by an abstract optimization process, although knowledge of these elements could be useful for
+improving parameter estimation.
+On the other hand, many approaches to dialog processing consider diﬀerent structural elements
+important to gain a deeper understanding of the eﬀects that utterances have on the dialog itself
+and its participants. But these approaches do not take spoken language and the problems related
+to speech recognition into account.
+Following the opinon of [Poe94] we consider the separation of describing and described situation
+to be a crucial point for dialog processing. This reﬂection is backed up by philological and linguistic
+research on discourse ([Die87], [Mar92], [BriGoe82], [Bun97]).
+On this basis we present fundamental elements of dialog structure to handle even spoken
+language. The main aim of this paper is to build a bridge between research on spoken language
+processing and study of discourse structure and cognitive approaches to communication between
+individuals in order to conceptualize dialog systems that integrate experience from all areas of
+research just mentioned.
+1
+
+2
+Diﬀerent Previous Approaches
+As there exists a vast amount of literature on discourse and user models, we ﬁrst give an account
+of some of the important directions of research performed up to now. The main interest of all
+this work is to make precise the notion of “context” which is said to be of great importance for
+natural language understanding. Inspired by the work of Grosz and Sidner ([GroSid86]) on the
+interrelations of task and discourse structure, a diversiﬁcation to structural, semantical and
+plan-oriented studies has taken place.
+2.1
+Discourse Structure
+The fundamental consideration for work on the structure of discourse is that there is a correspon-
+dence between the ordering of utterances in a discourse and how they are related among each
+other on the semantic level ([Gar94], [Gar97]). Tree structures are used to describe the semantic
+coherence of discourse. By using these structures, one can deﬁne constraints on possible places
+for attaching a new utterance to a existing discourse ([Web91]) and on accessibility relations for
+potential referents for deictic expressions ([Pol95]). In approaches based on Discourse Represen-
+tation Theory ([KamRey93]) this correspondence is captured by construction rules (which can be
+deﬁned in terms of an extended λ-calculus—see [Kus96]) building up Discourse Representation
+Structures that describe the coherence relation of all the included contributions1.
+2.2
+Speech Act based Theories
+Many semantic theories work only locally, i.e. they describe the meaning of one single utterance,
+ignoring its context and the discourse situation in general. Insofar, they are unable to account for
+the functionality (i.e. intention) of a perceived utterance.
+Basing on earlier work by Austin, [Sea69] proposed a theory of speech acts that has been
+fundamental for research on this area. Speech acts are implemented in dialog managers to derive
+hypotheses of how the current utterance contributes to the dialog so far. But considering the
+last utterance only is insuﬃcient for a cooperative dialog participant as this local view does not
+pay attention to expectations of other parties involved in the dialog (e.g. when somebody asks a
+question, she expects the following utterance to be an answer to it). Consequently, to describe
+coherence in dialog steps, the eﬀects of previous utterances have to be recorded somehow. So, the
+structural approach of conversational games mentioned brieﬂy above provides an explanation for
+the speaker uttering something in the course of dialog. Another point of view to the coherence
+problem is taken by [TraAll94]: they propose that the speech acts associated to each utterance
+impose social and conventional obligations on the hearer and therefore constrain the set of possible
+legal responses. Equivalently, one can state that after uttering something the speaker has certain
+expectations that she wants to be fulﬁlled by any response that will be given in the next dialog
+step.
+2.3
+Intentions, Plans, and Coherence of Utterances
+By now, we are able to describe how linearly (by time of being uttered) ordered contributions to a
+dialog can be integrated into a (partially ordered) discourse structure, but it is still impossible to
+explain the motivations of the speaker to use a certain speech act, especially in the case when the
+expectations introduced by the previous are violated. To answer this question, one has to study
+the mental attitudes of dialog participants.
+Motivations for engaging in a dialog can be taken into account by studying planning of utter-
+ances. Discourse planning is discussed extensively e.g. by Lambert and Lochbaum ([Lam93] and
+1DRT has been extended by many researchers in diﬀerent ways—e.g. by Asher for capturing discourse segments
+([Ash93]) or in the VERBMOBIL project for handling complex phenomena of spontaneous speech for machine
+translation ([vm135], [vm83]).
+But all these theories initially describe monologs and therefore do not consider
+multi-party communication which is characteristic for dialogs.
+2
+
+[Loc94]). Both authors concentrate on the integration of domain dependent planning steps into
+the interpretation of utterances. Approaches such as those by [MooYou94] or [CarCar94] devise a
+model for collaborative plans for response generation.
+Another line of research focusses on the BDI model which is a more domain independent ap-
+proach. This accentuates an agent-based view of dialog as the participants in dialog and their
+personal attitudes are considered to be of main interest. Beliefs, desires, and intentions are as-
+sumed to drive utterances and speech acts ([AshLas97], [AshSin93]). So the key problem for the
+interpretation by the dialog manager is the reconstruction of the speaker’s attitudes from what
+she uttered.
+Coherence of utterances is obtained by fundamental assumptions on cooperative
+behaviour ([Grice]) and by analyzing how the content of utterances coheres on the basis of the
+(mutually believed) domain knowledge ([AshLas91], [AshLas94], [AshLasObe92]). Along this di-
+rection of research there is also some work on coherence relations between utterances ([Kno96],
+for an overview see [BatRon94]). These relations characterize the logical connection between ut-
+terances and thereby serve as a basic instrument for an analysis of the argumentative structure
+described by a given dialog.
+2.4
+Spoken Language Phenomena
+In spoken language hesitations, repairs, etc. are very common, because in oral communication
+concentration on the topic of the dialog limits mental resources available for speech production.
+These phenomena cannot be captured by semantic formalisms as sketched above. To overcome this
+problem, multi-level processing of spoken language utterances has been proposed in the literature
+(e.g. see [TraHin91]).
+3
+Interpretation of Utterances
+This section explains our approach how utterances can be interpreted using First Order Partial
+Information Ionic Logic (FIL, [Abd95]) as a language for describing the semantics of utterances.
+A central issue of dialog management is that dialogs are motivated by the speaker’s desire
+to add information to the knowledge of the dialog participants. On the other hand, it occurs
+frequently that the shared knowledge of the participants does not contain enough information
+to meet the expectations that are “pending” between speaker and hearer. For that reason, our
+semantic language must be able to handle situations of partial knowledge. FIL provides formulae
+(so called ionic formulae) like
+∗({φ1, ..., φk}, ξ)
+meaning intuitively that ξ is true when it is plausible that Φ = {φ1, ..., φk} (called justiﬁcation set
+or justiﬁcation context) is true, too (see [Abd95], Sect. 5). Φ is the set of missing information to
+infer ξ. FIL can be used to compute such justiﬁcation contexts.
+We incorporate FIL for the description of conditions in a DRT-based framework to represent
+dialog structure. An example of such a discourse representation structure (DRS) would be:
+Does a plane depart from Athens to Rome?
+has the semantic representation
+
+
+t Rome Athens
+Plane(t)
+Depart(t)
+Airport(Athens)
+Airport(Rome)
+From(t, Athens)
+To(t, Rome)
+
+
+In DRT, there exists a number of construction rules for incremental composition of several
+individual utterances. One can even infer whether DRS KN is a consequence of the DRS K1, ...,
+KN−1. But whilst in standard DRT conditions are described by classical ﬁrst order formulae, in
+3
+
+our approach FIL is used for that purpose. As FIL is a partial logic, we can compute whether KN
+is undeﬁned given K1, ..., KN−1. This is true, as FIL allows to talk about the truth value of a
+formula:
+undeﬁned(φ) ⇐⇒∼¬φ∧∼φ
+So, we are able to assign one of the following three consequence states to KN:
+• |= KN. KN follows from the discourse so far.
+• |̸|= KN ⇐⇒|= ¬KN: ¬KN follows from previous utterances.
+• |=∼¬KN∧∼KN: KN is still undeﬁned.
+Using the deduction theorem (∆∪{φ1, ..., φK} |= ψ ⇐⇒∆|= φ1∧...∧φK →ψ) we have established
+a coherence relation between utterances via implication in FIL. When φ1 ∧... ∧φK →ψ is true,
+∗({φ1, ..., φK}, ψ) is true, too.
+Interpreting an utterance requires a knowledge base ∆for the representation of the domain
+relevant knowledge. As described in [LudG¨oNie98], we use description logics to deﬁne the notions
+to be understood by the dialog manager for a given application. More precisely, description logics
+serve for constructing a terminology of the domain, thereby representing domain dependent, but
+situation independent knowledge. In order to interpret a speciﬁc utterance in a given situation, the
+given terminology is instantiated by concrete facts that are entailed by the semantic representation
+of the current utterance. To give a simple example of this idea, we could state in the knowledge
+base of a ﬂight information system that a ﬂight from a departure location to an arrival location
+is a ﬂight characterized by the existence of an airport at the departure and the arrival location,
+respectively. In description logics, we could say:
+FlightFromTo = ∃From.airport ∩∃To.airport ∩Flight
+So, this deﬁnition characterizes knowledge that holds in every situation in the given application
+domain. On the other hand, the DRS above describes a concrete situation.
+We conclude that the consequence states mentioned above have to be understood as conse-
+quence on the basis of a situation independent knowledge base that characterizes the application
+domain. To interpret utterances in a given situation, the dialog manager tries to infer the con-
+sequence state of the current utterance relying on his domain knowledge. In general, this state
+depends on a certain justiﬁcation context as outlined above. As will be shown below, we can verify
+the truth value of all elements in a justiﬁcation context Φ if we interpret each φi as a question to
+the hearer and view the subsequent response as an answer to this question. This means that the
+dialog manager’s planning steps are strongly aﬀected by the results of inference in its knowledge
+base. From that view and the semantics of ∗({φ1, ..., φK}, ψ) we can derive an n-ary AND/OR
+tree that reﬂects the discourse structure of the discussed dialog segment.
+In the tradition of [GroSto84] and [GabRey92] we consider (free) discourse referents of inter-
+rogative pronouns as λ-bound variables. If the problem solver ﬁnds a solution for the posed query,
+then it binds these variables to discourse referents that have been introduced earlier (or during the
+process of problem solving). Of course, there can be more than one possible substitution of the
+λ-variables. For given variables x1, ..., xM, we denote a substitution of all variables by discourse
+referents t1, ..., tM as Σ = {[x1/t1], ..., [xM/tM]}. {Σ1, ..., ΣK} is a set of K pairwise distinct
+substitutions.
+In the general case where the result of the inference process consists of a set {Σ1, ..., ΣK} of
+answer substitutions and a set {φ1, ..., φN−1} of justiﬁcation substitutions, each Σi induces an edge
+in a OR-subtree of the overall discourse structure.
+This tree structure is part of the describing situation for the current dialog. Below we will
+introduce operations on the dialog tree that characterize how the structure is expanded in the
+course of dialog. In this sense, such a tree constitutes the “syntax” of the current dialog. But
+there is a strong connection to what could be called “dialog semantics”. It is grounded basically on
+the meaning of the edges in the tree: they express the fact that parent and child nodes are coherent
+in the sense of FIL consequence explained above. Furthermore, by the notion of satisﬁability of FIL
+4
+
+ionic formulae we exploit the tree structure to reformulate Grosz’ and Sidner’s relations dominance
+and satisfaction precedence2: because justiﬁcation context Φ = {φ1, ..., φk}, when ∗(Φ, ψ) is given,
+is true if and only if all φi are true on the justiﬁcation
+level3, we have ψ ↑φi for all 1 ≤i ≤k. And as |̸|= φi for one i ∈{1, ..., k} implies |̸|= ∗(Φ, ψ),
+we obtain φi ≺φj for 1 ≤i < j ≤k.
+4
+Basic Elements of Dialogs
+4.1
+Empirical Evidence for the Need of User Models
+Dialog managers for real world applications have to be robust in the sense that they always
+terminate an (user-)initiated dialog in a controlled way. So, the study of how to build robust
+generic dialog managers implies to reason about what structures exist in a dialog and how they
+get modiﬁed by utterances. On the other hand, it is also important to understand how dialogs
+aﬀect the participants and their future utterances.
+A ﬁrst approach to this problem is to see the function of utterances as that of updating the
+shared knowledge—a data structure maintained and used by all dialog participants. From this
+point of view, each dialog participant infers the same consequences from every new utterance.
+But as pointed out in the AI literature, actually people hold personal assumptions about the
+meaning of an utterance. These assumptions can diﬀer among dialog participants. We illustrate
+this by an example taken from the TRAINS corpus (see [TrainsCorpus]):
+1.1 M: okay
+1.2 : we have to get .. a
+1.3 : tanker car of orange juice to uh Avon
+1.4 : and a
+1.5 : boxcar of bananas to Corning
+1.6 : and we have to do that by 3 PM today
+2.1 S: okay
+3.1 M: okay
+3.2 : so let’s see umm
+3.3 : ... we probably have to take the tanker car
+3.4 : from Corning to Elmira
+3.5 : to get uh
+3.6 : orange juice in it
+3.7 : um
+[2sec]
+3.8 : [click] and uh
+3.9 : how far is it from Corning to Elmira
+3.10 : how long would it take
+4.1 S: 2 hours
+5.1 M: m hm
+5.2 : okay so
+[2sec]
+5.3 : why don’t we uh
+5.4 : let’s see
+5.5 : [sniﬀ]
+5.6 : okay why don’t we
+5.7 : would w/
+5.8 : uh
+5.9 : why don’t we consider sending uh
+5.10 : engine E2
+5.11 : to Corning
+5.12 : to get the tanker car
+5.13 : and uh
+5.14 : bring it back to Elmira
+[2sec]
+5.15 : uh
+5.16 : and uh have them
+[2sec]
+5.17 : have them ﬁll it
+5.18 : with OJ
+5.19 : so how long would it take
+6.1 S: well y / you need to get oranges
+6.2 : to the OJ factory
+7.1 M: +oh + okay
+7.2 : there’s no oranges there yet
+7.3 : okay so
+In (1.1) to (1.6) M describes the goal of this dialog and some constraints. Doing that he
+makes some of his mental attitudes public, thereby assuming that S will be able to interpret
+them appropriately. So (1.1) to (1.6) do not transport content about the domain, but about M
+exclusively. The impact of the observation that utterances can contain domain relevant knowledge
+2α dominates β (α ↑β) if and only if β is part of α, while α satisfaction-precedes β (α ≺β) if and only if α is
+neccessary for β
+3i.e. (stated in model-theoretic semantics) there exists an interpretation that expands any interpretation that
+makes ψ true in such a way that it assigns true to all φi, too.
+5
+
+as well as knowledge about other dialog participants is enormous: In (6.1) and (6.2) S tries to
+explain why M will not be able to reach his goals by explaining why M’s information about the
+domain and the current domain scenario is incomplete or false. This is possible only because S can
+diﬀerentiate between his own domain knowledge and that transported by the previous utterances.
+As a consequence, S’ cooperative behaviour is made possible by his ability to reason about the
+domain and about his assumptions of M’s view of the domain.
+This example shows that cooperative dialog managers must maintain some sort of user model.
+Our approach will be discussed in the remainder of this section.
+4.2
+Rational Behaviour of Dialog Participants
+Discussing dialog management, one normally assumes that people initiate communication with
+others in order to get help for achieving a certain goal. From these observations, we can derive
+that questions are asked to get an answer that completes the speaker’s knowledge in some way.
+For an answer to be helpful, it has to meet certain constraints (expressed by [Grice] in his
+maxims of cooperation): ﬁrst, it has to be coherent with the question so that it can deliver
+valuable information. And, of course, it should be true. These requirements pose constraints on
+the behaviour of the person that is giving the reponse, too. This person has to be cooperative, i.e.
+she should adopt the speaker’s goals, as far as she can realize them. Honesty is another crucial
+point. For a person not feeling obliged to telling the truth is not a reliable source of information.
+Our dicussion is restricted to dialogs that fulﬁll the requirements above. I.e., we assume some
+amount of rational behaviour for all dialog participants.
+To reason about goals and intentions, one has to study the cognitive structures that underly
+rational behaviour. For dialogs, these structures are described at length in [TR663].
+One major challenge for designing robust dialog systems seems to be how to reconstruct the
+contents of the mental states of the user out of the utterances—the only observable facts. So
+the study of how language can transfer attitudes and reﬂect planning steps of dialog participants
+becomes very important. [Eng88] notes that in German basically one can communicate three
+diﬀerent types of utterances:
+• constative: state facts.
+Our requirement of honesty admits the conclusion that nothing
+wrong is intentionally stated to be true.
+• interrogative: ask something.
+• imperative: request something.
+4.3
+Discourse Domain and Application Domain
+To formalize the intuitions described up to now, we need a framework that enables us to talk
+about utterances or the corresponding DRS, respectively.
+We can achieve this by introducing a discourse domain4 that is the domain of describing
+situations.
+Atomic elements are DRS whereas in the application domain (consequently to be
+deﬁned as the domain of described situations) atomic elements are objects of the application. This
+reﬂects the ability of natural language to “climb up” to a meta-level, e.g. simply by saying “What
+you have told me up to now, has been clear to me. But I can’t understand what I should do now.”
+If one thinks about a situation
+when a teacher instructs a pupil how to achieve some goal, then it becomes obvious that
+responses as above refer only to the instructions, but not to what is instructed currently. We use
+this framework to reason about the relation of utterances and speaker’s attitudes. Following the
+notation in [AshLas97], we express the connection between formulating attitudes and the attitudes
+4The discourse domain is not the domain of discourse as we try to make clear in the remainder of this section.
+We call the domain of discourse the application domain to express the fact that discourse structure and application
+structure (sometimes called task structure) are diﬀerent and not isomorphic.
+6
+
+themselves in the following way5:
+constative(K)
+→
+WI(BR(K))
+(1)
+interrogative(K)
+→
+WI(KI(K))
+(2)
+imperative(K)
+→
+WI(doR(K))
+(3)
+To describe defeasible rules, we exploit FIL ionic formulae: defaults eventually to be defeated by
+overriding exceptions are expressed as ionic formulae. By that the consequence of an implication
+is assumed to be valid as long as there is no evidence to the contrary. If we have φ →∗(ψ, ψ) and
+φ, then ψ is considered true, unless there is evidence for ψ to be false. So we can formulate
+• a principle of sincerity:
+II(BR(K))
+→
+∗(BI(K), BI(K))
+(4)
+• principles of cooperation:
+WI(K) ∧BI(¬K)
+→
+∗(WR(K) ∧BR(¬K), WR(K) ∧BR(¬K))
+(5)
+WI(doI(K))
+→
+∗(WR(KI(K)), WR(KI(K)))
+(6)
+After having deﬁned how linguistically motivated types of utterances and mental states are
+interrelated among each other and how fundamental principles of collaboration in dialogs are
+expressed formally, we show (by means of two examples) how mental states and speech acts are
+connected via defeasible rules in FIL:
+WI(KI(K))
+→
+∗(queryI(K), queryI(K))
+(7)
+BR(¬(∼¬(ξ →K)∧∼(ξ →K))) ∧
+WR(KI(K)) ∧WR(BI(ξ))
+→
+∗(informR(ξ), informR(ξ))
+(8)
+Informally, the ﬁrst rule states that anything one wants to know is normally asked for, while the
+second rule claims that if one wants another dialog participant to know something and believes it
+could be a consequence of something else and wants the other to know that, too, then one informs
+about that new fact.
+We can draw the following conclusion: After the speaker (I) has asked K and gets ξ as response,
+she can infer defeasibly informR(ξ) assuming that ξ is constative and relying on cooperation if there
+is no evidence for R (the hearer of I’s utterance, but now speaker of ξ) against the belief ξ →K.
+Furthermore, by sincerity I can also infer that R intends I to believe ξ →K.
+This example outlines our approach of to how reconstruct speech acts from observable utterance
+types via reasoning about the speaker’s intentions. Recognizing speech acts is important for a
+cooperative dialog manager as it helps to explore what state the dialog currently is in (e.g. a
+question has been asked and an appropriate answer is now expected). It seems to be just this
+notion of dialog state that captures the interactive nature of dialogs in contrast to monological
+discourse like a newspaper article. Describing how the transition of the dialog state looks like in
+the course of utterances therefore extends the notion of coherence in discourse sketched above.
+But, as can be seen easily from the inform rule (8) above, coherence is the link betwen mental
+states and speech acts: no speech act can be recognized without reasoning about coherence of
+utterances. In the rule above, informR(ξ) can be inferred only if |= ξ →K or |̸|= ξ →K. The case
+when ξ →K is undeﬁned, will be discussed later.
+5We denote the speaker I (initiator) and the hearer R (responder). B expresses beliefs, W desires, I intentions,
+and K knowledge
+7
+
+4.4
+Dialog States and Dialog Structure
+First we turn to the discussion of dialog states and their transition relation: As noted in the
+literature (see e.g. [TraAll94, CriWeb97]), utterances in dialogs induce expectations of what a
+plausible response should look like. Stated diﬀerently, by her speech act, the speaker poses some
+obligation on the hearer that constrains the preferred responses. Nevertheless, a model of dialog
+that does not restrict the range of “valid” utterances too much, should give an account for a
+cooperative reaction even if expectations have been violated in a response.
+Meeting an expectation and thereby completing the conversational game opened by the initator,
+the responder implicitly performs a segmentation of the discourse. In what follows, we describe
+the syntax of discourse segments using a context free grammar whose rules are attributed by
+operations on the dialog structure depending on the coherence between the current utterance and
+the knowledge shared between the dialog participants. In that way, we deﬁne the semantics of
+discourse segmentation in terms of coherence of utterances using the notion of the AND/OR tree
+introduced above.
+4.4.1
+Simple Segments
+In a simple segment the speaker poses no obligations on the hearer. When no obligations are
+pending, an inform act would create a simple segment according to the following rule:
+SEG
+→
+informI(K)
+(9)
+SEG = newAND(SEG, K)
+This rule states K can be added as a new fact to the shared knowledge, and therefore be inserted
+as an AND branch into the currently centered segment. In the absence of pending expectations,
+the root segment (i.e. the root of the dialog tree) is centered by default6.
+4.4.2
+Complex Segments
+Dialog segments are called complex when the speaker assigns expectations to her utterance. For
+example, when asking a question she expects an answer to be given by the hearer that helps
+perform her intentions.
+But it is obvious that the hearer could have reason not to fulﬁll the
+expectations (at least temporarily): she could need additional information ﬁrst in order to answer
+the question and therefore respond with a new one. After this question will have been answered
+the hearer will respond according to the still pending expectation. We capture this situation with
+the following rules:
+SEG
+→
+queryI(K) QUERYEXP
+(10)
+SEG1 = newAND(SEG1, newSubTree(K, QUERYEXP))
+SEG
+→
+SEG SEG
+(11)
+SEG1 = newAND(SEG2, SEG3)
+Here, the ﬁrst rule says that a segment can be initiated by a query imposing an obligation to
+answer it. On the other hand, as it is expressed in the second rule, a segment can consist of two
+subsegments forming an AND subtree. QUERYEXP follows the rule:
+QUERYEXP
+→
+ANSWER
+(12)
+QUERYEXP = ANSWER
+QUERYEXP
+→
+ANSWER QUERYEXP
+(13)
+QUERYEXP1 = newOR(ANSWER2, QUERYEXP3)
+6Below, after having introduced the operations on the dialog tree, we will give an example illustrating the
+application of the segmentation rules.
+8
+
+ANSWER is deﬁned as follows:
+ANSWER
+→
+informI(K)
+(14)
+ANSWER = newNode(K)
+ANSWER
+→
+SEG informI(K)
+(15)
+ANSWER = changeRoot(SEG, K)
+4.5
+Example
+In this section, we give an example of how our dialog model behaves at work. For the purpose of
+illustration we use the following short ﬂight information dialog:
+α
+User: I want a ﬂight from Athens.
+β1
+System: Where do you want to go to?
+γ1
+User: To Rome.
+β2
+System: On which day?
+γ2
+User: On Monday.
+β3
+System: When do you want to depart?
+γ3
+User: At 12 o’clock.
+ρ
+System: There are several connections: AZ717 at 06:55, OA233 at 09:05, AZ725 at 09:20,
+OA235 at 12:55, AZ721 at 16:00, OA239 at 17:10, AZ723 at 20:20.
+As will be discussed in Sect. 7.2, I want expresses a desire explicitly and is therefore repre-
+sented as WI(α). From that we conclude ∗(queryI(α), queryI(α)). Besides of that, we have the
+implications WR(KI(α)) by cooperation and ¬informI(α). On the other hand, grammatically α is
+constative. Therefore constative(α) →WI(KR(α)) and, consequently, ∗(informI(α), informI(α)).
+But justiﬁcation context informI(α) is in conﬂict with ¬informI(α). Therefore, the only derivable
+hypothesis for α’s speech act is queryI(α).
+According to the rules for discourse segmentation
+above, this induces a QUERYEXP for R (i.e. the dialog manager). This obligation is expressed
+in the user model by WR(KI(α)).
+In order to fulﬁll this desire, the dialog manager tries to evalute the consequence status of α
+(see Sect. 3). This evaluation is performed on the basis of the domain model (for a more elaborate
+example see [LudG¨oNie98]). Its result is that the status of α depends on the justiﬁcation context
+{At, To, On}. I.e. departure day and time as well as the destination are still unknown.
+So, mental attitudes of the dialog manager change: a new desire WR(KR(β1)) is added that
+implies ∗(queryR(β1), queryR(β1)). I.e. a new discourse obligation is being introduced leaving the
+old one pending.
+For the user’s response constative(γ1) holds, implying WI(KR(γ1)). From γ1 the dialog man-
+ager infers γ1 →β1.
+Consequently, it assumes BI(γ1 →β1) and ∗(informI(γ1), informI(γ1)).
+As there is no evidence against informI(γ1) and no other hypothesis for a possible speech act,
+informI(γ1) is assumed. This completes queryR(β1). With this completion, the dialog manager
+obtains information about the destination.
+Processing of β2, γ2 and β3, γ3 is performed analogously. After that, the justiﬁcation context
+inferred during the interpretation α has been answered completely. Having got all this information
+the dialog manager can compute a solution for α that is uttered in ρ.
+Fig. 1 shows the dialog segmentation for this example, while Fig. 2 sketches the coherence
+structure of all utterances, represented in a DRS in Fig. 3. A point worth mentioning is that the
+structure of the justiﬁcation context as an AND tree is embedded in the coherence structure of
+the dialog.
+9
+
+SEG
+✟✟✟✟✟
+❍
+❍
+❍
+❍
+❍
+queryI(α)
+QUERYEXP
+ANSWER
+✟✟✟
+❍
+❍
+❍
+SEG
+✟✟✟✟✟✟✟✟✟✟
+❍
+❍
+❍
+❍
+❍
+❍
+❍
+❍
+❍
+❍
+SEG
+✟✟✟✟
+❍
+❍
+❍
+❍
+QUERYEXP
+ANSWER
+informI(γ1)
+queryR(β1)
+SEG
+✟✟✟✟✟✟✟
+❍
+❍
+❍
+❍
+❍
+❍
+❍
+SEG
+✟✟✟✟
+❍
+❍
+❍
+❍
+QUERYEXP
+ANSWER
+informI(γ2)
+queryR(β2)
+SEG
+✟✟✟✟
+❍
+❍
+❍
+❍
+QUERYEXP
+ANSWER
+informI(γ3)
+queryR(β3)
+informR(ρ)
+Figure 1: Segmentation of the Example Dialog
+queryI(α)
+informR(ρ)
+✟✟✟✟✟✟
+❍
+❍
+❍
+❍
+❍
+❍
+queryR(β1)
+informI(γ1)
+queryR(β2)
+informI(γ2)
+queryR(β3)
+informI(γ3)
+Figure 2: Coherence structure of the Example Dialog
+5
+Incoherence and its Eﬀects on Dialog Structure
+This section explains in more detail how our dialog manager handles situations when two utter-
+ances are incoherent in the sense mentioned earlier although they otherwise would not violate any
+expectations. Consider the dialog is Fig. 4 for a motivation of the problem:
+This dialog is quite regular according to the rules on dialog state described in the previous
+section until U utters θ. Shared domain knowledge ∆and the facts collected during the dialog
+do not allow to conclude that θ and η are coherent. One can derive that ∆∪{θ} |=∼¬η∧∼η.
+So the question arises which speech act to assign to θ. To answer that question we have to go
+back some steps in the dialog: in occasion of uttering γ, S made U assume WS(KS(γ)) implying
+WU(KS(γ)). From this observation and from ∆∪{ζ} |= γ, S can infer that U wants to give an
+answer to γ —thereby ignoring S’s expectation that ǫ will be answered by U.
+How can such a situation be described in our model of dialog states? Following [Tra94], we
+assume that several speech acts can be assigned to one utterance allowing the speaker to express
+multiple intentions at one time. Except of the inform act derived be inferring coherence between θ
+and γ, we assign a cancel act to U’s last utterance. cancel has the meaning that a pending dialog
+obligation is violated intentionally as it is the case when U referred to γ when responding to η.
+10
+
+
+
+α β1 β2 β3 γ1 γ2 γ3 ρ
+α =
+
+
+u ˜α
+˜α =
+
+
+f Athens
+Flight(f)
+From(f, Athens)
+
+
+want(u, ˜α)
+
+
+β1 = λl.
+
+
+u
+Go(u)
+Location(l)
+To(u, l)
+
+
+γ1 = β1(Rome)
+β2 = λd.
+
+
+u
+Go(u)
+Day(d)
+On(u, d)
+
+
+γ2 = β2(Monday)
+β3 = λt.
+
+
+u
+Go(u)
+Time(t)
+At(u, t)
+
+
+γ3 = β3(12 o’clock)
+ρ =
+
+
+c AZ717 OA233 AZ725 OA235 AZ721 OA239 AZ723
+Several(c)
+Connection(c)
+Flight(AZ717) At(AZ717, 06 : 55)
+Flight(OA233) At(OA233, 09 : 05)
+Flight(AZ725) At(AZ725, 09 : 20)
+Flight(OA235) At(OA235, 12 : 55)
+Flight(AZ721) At(AZ721, 16 : 00)
+Flight(OA239) At(OA239, 17 : 10)
+Flight(AZ723) At(AZ723, 20 : 20)
+
+
+
+
+Figure 3: Discourse Representation Structure for the Example Dialog
+cancel is deﬁned by
+(∼¬K∧∼K) ∧informR(K)
+→
+cancelR(K)
+(16)
+To integrate cancel into speech act processing, we add a new rule for ANSWER:
+ANSWER
+→
+cancelI(K)
+(17)
+ANSWER = ∅
+(18)
+?α
+U:
+Is there a ﬂight to Rome on Saturday?
+.β
+S:
+Yes. LH745 at 10:38, AZ304 at 15:03, or 2G261 at 16:25.
+?γ
+S:
+Which airline do you prefer?
+.δ
+U:
+The Alitalia ﬂight would be quite convenient.
+?ǫ
+U:
+Do they oﬀer business class?
+.ζ
+S:
+Yes, they do.
+?η
+S:
+Have you got a MilleMiglia card?
+.θ
+U:
+[Hmm, actually] I rather prefer Lufthansa due to their superb service.
+Figure 4: Example Dialog
+11
+
+6
+Conﬁguration of Dialog Managers
+Our approach to dialog understanding as it has been characterized up to now is dominated by the
+idea to separate domain independent algorithms and data structures from domain dependent data
+for speciﬁc applications and to separate the discourse domain proper from the application domain.
+By the isolation of domain independent dialog elements we try to explore the minimal amount of
+dialog structures to be conﬁgured for a speciﬁc application. In particular, we have distinguished
+three models contributing to the setup of a dialog system for a given application:
+• Domain model
+It deﬁnes the notions that exist in the application domain and how these notions are being
+interpreted. Additionally, it describes how the vocabulary of the domain is connected with
+notions deﬁned in the domain model (see Sect. 3).
+• Dialog model
+The conversational games valid for the application (see Sect. 4.3) and the rules how moves of
+diﬀerent games can be interleaved among each other are deﬁned in the dialog model. Rules
+for the games specify how the dialog structure (represented by the dialog manager as an
+AND/OR tree) is aﬀected by a certain game. In addition, it is possible to restrict dialog
+participants to diﬀerent sets of conversational games that they are allowed to begin. E.g. in
+a dialog model without mixed initiative the user would not be permitted to begin a query
+game, but only be allowed to react with inform. It is an open question whether a restriction
+of the kind just described could serve as a suﬃcient characterization of the complexity of
+dialogs.
+• Model of dialog participants (user model)
+In order to reason about motivations for conversational games one has to connect game
+moves (i.e. speech acts) with mental attitudes of dialog participants. For this purpose, the
+user model deﬁnes neccessary conditions of mental attitudes for each speech act. On the
+other hand, it also contains the general principles of rational behaviour that hold between
+the attitudes of dialog participants (see 4.2).
+During the conﬁguration for a speciﬁc application the models sketched above have to be deﬁned.
+We argue that at least for the dialog model and the user model there exists a large application
+independent subset of deﬁnitions that holds for any application and has only to be completed for
+a concrete domain.
+In many cases, such a subset would reduce conﬁguration to the deﬁnition of an appropriate
+domain model. From this point of view, it would be worth analyzing which classes of dialogs could
+be covered by proposals for domain independent sets of speech acts (such as the one described by
+the Discourse Resource Initiative—see [DRI97]).
+7
+Explicit Modiﬁcation and Segmentation of Dialog Struc-
+tures
+Any model for describing discourse as the one sketched in this paper should give an account not
+only for an implicit construction of dialog structures, but also for its explicit modiﬁcation by the
+dialog participants (see e.g. [Coh90]). Such an account would reﬂect the capability of dialog to
+talk about what [Bun97] has called “dialog control”, or about attitudes and mental states of dialog
+participants. Switching to the “meta-level” is normally signalled by cue phrases or performatives.
+In the remainder of this section we will discuss how these special types of utterances that have
+a well-deﬁned meaning only in the describing situation of the dialog aﬀect our dialog model.
+12
+
+7.1
+Cue Phrases
+In our opinion, many natural language expressions are like polymorphous operators in object-
+oriented programming languages: they take arguments of diﬀerent type and have diﬀerent seman-
+tics each time. This view is shared by other researchers, too—e.g. [Ben88]. E.g. in the utterance
+“Do you want to depart from Munich or from Frankfurt?” or expresses a choice between two
+locations—i.e. two objects of the described situation. On the other hand, in “Will you go there by
+bus or rather take the car?” or again states two possible alternatives, but, in this case, they are
+utterances—i.e. objects of the describing situation.
+To incorporate interpretation of cue phrases of into the dialog model we rely on Knott’s work
+([Kno96]) on coherence relations. Knott discusses extensively how cue phrases contribute to the
+understanding of discourse coherence: He assumes that any cue phrase has the function of an
+operator between previous utterances α1, ..., αN and an utterance β following the cue phrase.
+These utterances are connected by a defeasible rule P1 ∧...∧PN →C which we can express in FIL
+as ∗(P1 ∧... ∧PN →C, P1 ∧... ∧PN →C). Each cue phrase has an associated set of features like
+polarity of the consequent etc. that deﬁne its semantics and how the utterances in the scope of
+the cue phrase are linked to Pi and C. E.g. for but, we have Pi := ¬αi and C := β. Consequently
+for “α, but β” coherence between α and β is expressed by ¬α →β.
+For the general case, coherence between utterances in the scope of the cue phrase can be
+established if {P1, ..., PN} |= C or {P1, ..., PN}|̸|= C. This result can be exploited to update the
+dialog structure appropriately.
+For a deeper investigation of this topic let’s have a look at the following dialog:
+?α
+U:
+Is there a ﬂight to Rome on Saturday?
+.β
+S:
+Yes. AZ631 at 15:03
+?γ
+U:
+How much is it?
+.δ
+S:
+DM 528 plus tax.
+?ǫ
+U:
+or on Monday, what about that?
+.ζ
+S:
+On Monday you can ﬂy with Debonair.
+?η
+U:
+How much is a ticket?
+.θ
+S:
+DM 199 plus tax.
+How is “or on Monday?” processed and integrated into the dialog structure? Firstly, it has to
+be noticed that ellipsis resolution on the PP “on Monday” yields as syntactic referent “Is there a
+ﬂight to Rome?”.
+Secondly, the DRS for the describing situation after δ has been processed, is as shown in Fig.
+5.
+
+
+α β γ δ
+α = λ f.
+
+
+s r f
+flight(f)
+Rome(r)
+to(f, r)
+Saturday(s)
+on(f, s)
+
+
+β = α(az631)
+γ = λ p.
+ az631p
+cost(az631, p)
+
+δ = γ(528+Tax)
+
+
+Figure 5: DRS after δ has been processed.
+Combining the remark on the ellipsis “on Monday” and the DRS for the dialog so far, we ﬁnd
+that the right-hand argument of the operator or is α[Saturday/Monday]7. So, we can denote a
+7i.e. in α all appearences of Saturday are substituted by Monday
+13
+
+DRS (see Fig. 6) that describes the semantics of ǫ.
+ǫ =
+
+
+X α[Saturday/Monday]
+α = λ f.
+
+
+s r f
+flight(f)
+Rome(r)
+to(f, r)
+Saturday(s)
+on(f, s)
+
+
+X =?
+X or α[Saturday/Monday]
+
+
+Figure 6: DRS for ǫ
+Obviously, as can be seen from the DRS for ǫ, the problem of ﬁnding an appropriate discourse
+referent for X can be solved by anaphora resolution in the describing situation. The only an-
+tecedent in the describing situation compatible with α[Saturday/Monday] is α. So, α has been
+centered by ǫ.
+The impact of ǫ on the dialog structure is determined essentially by how or modiﬁes the dialog
+segmentation: the segment of α is substituted by an OR subtree representing the two arguments
+of or (see Fig. 7). For the utterances to follow, ǫ is the center, and dialog processing works as
+usual.
+7.2
+Performatives and Modal Verbs
+Performatives and modal verbs state assertions not about the described, but the describing situ-
+ation; more precisely, they express assertions about mental states and speech acts as in “I must
+leave you now”, “On what day do you want to depart?”, “I suggest not to pay at all for this bad
+ﬁlm.”
+As such utterances do not talk about the described situation, they cannot be processed as if they
+did. Consequently, speech act recognition does not apply as normally in this case. For that reason,
+all rules above for inferring speech acts are defeasible. Therefore we can devise “special” rules for
+performatives and modal verbs that “override” defeasible inferences based solely on syntactic and
+prosodic criteria if an inspection of the content of the utterance provides evidence against these
+“default conclusions”. To do this, we classify performatives and modal verbs according to what
+mental state they operate on or what speech act they express.
+In the utterance “I want to ﬂy to Rome on Saturday.”, want expresses implicitly the query “Is
+there a ﬂight to Rome on Saturday.”. It is clear immediately that the utterance is actually not
+an inform act that poses no obligations to respond cooperatively on the hearer. So desires and
+γ
+∧
+α
+β
+ROOT
+δ
+ǫ
+∨
+α[Saturday/Monday]
+Figure 7: Dialog Tree after Applying α or α[Saturday/Monday]
+14
+
+queries are defeasibly connected by:
+WI(doI(K))
+→
+∗(queryI(K), queryI(K))
+(19)
+WI(doI(K)) overrides inform in the following way:
+WI(doI(K))
+→
+¬informI(K)
+(20)
+When the dialog manager starts processing the utterance above, it infers the following:
+• informI(K) with justiﬁcation context informI(K)
+• queryI(K) with justiﬁcation context queryI(K)
+As the semantics of “I want to” belongs to the class WI(doI(K)), we can use this fact (that has
+been derived from the semantic representation of the utterance) to infer ¬informI(K) by (20). As
+a result, the only valid inference is queryI(K). By cooperation, we can infer WR(KI(K)). After
+that, we are in exactly the same situation as if the speaker had asked directly for a ﬂight to Rome.
+8
+Conclusions
+We have reported about work in progress on developing a theoretical approach on dialog structure
+in order to build domain independent, cooperative, and robust dialog managers. The theoretical
+framework outlined in this paper has already been implemented partially and was tested for a small
+domain. In an evaluation, the implementation has proven to perform well. On the other hand,
+we have analyzed a large corpus of train-inquiry dialogs collected with our EVAR ([EckNie94])
+system. An important result is that the quality of speech recognition determines how cooperative
+the EVAR system8 really is. To improve this situation we work towards improving dialog theory
+as presented in this paper by integrating BDI-oriented, structural, and plan based approaches to
+dialog understanding. Experience from analyzing dialogs that have not been terminated success-
+fully has shown that our approach is capable to overcome the failures that caused the inacceptable
+terminations.
+9
+Future Research
+Using the results presented in this paper as a basis, we will continue our work on dialog struc-
+ture by describing precisely how a processing level for handling typically diﬃcult phenomena of
+spoken language like repairs etc. can be integrated into our model. We intend to achieve this by
+incorporating Traum’s model of grounding (see [Tra94]) into our framework. This mechanism will
+have to be expanded to work properly on word hypothesis graphs that are the basic data structure
+of the common ground. This allows for a full exploitation of the results produced by the speech
+recognizer. Furthermore, we want to integrate our implementation of a chunk parser as a robust
+algorithmic approach to a theory of incremental discourse processing as described e.g. in [Poe94].
+References
+[Abd95] N. Abdallah, The Logic of Partial Information, Springer, New York 1995
+[Ash93] N. Asher, Reference to Abstract Objects in Discourse, Kluwer, Dordrecht 1993
+[AshLas91] N. Asher, A. Lascarides, Dicourse Relations and Defeasible Knowledge, in: Proceedings of the 29nd
+Annual Meeting of the Association of Computational Linguistics (ACL 91), pp. 55−63, Berkeley 1994
+[AshLas94] N. Asher, A. Lascarides, Intentions and Information in Discourse, in: Proceedings of the 32nd
+Annual Meeting of the Association of Computational Linguistics (ACL 94), pp. 35−41, Las Cruces 1994
+[AshLas97] N. Asher, A. Lascarides, Questions in Dialogue, to appear in Linguistics and Philosophy
+8EVAR is not based on the dialog model sketched in this paper.
+15
+
+[AshLasObe92] N. Asher, A. Lascarides, J. Oberlander, Inferring Discourse Relations in Context, in: Pro-
+ceedings of the 30th Annual Meeting of the Association of Computational Linguistics (ACL 92), pp. 1−8,
+Delaware 1992
+[AshSin93] N. Asher, M. Singh, A Logic of Intentions and Beliefs, in: Journal of Philosophical Logic, (22):5,
+pp. 513−544
+[BatRon94] J. Bateman, K. Ronhuis, Coherence relations: Analysis and speciﬁcation, Technical Report R 1.1.2:
+a, b, The DANDELION Consortium, Darmstadt 1994
+[Ben88] J. van Benthem, A manual of intensional logic, CSLI lecture notes, 21988
+[vm135] J. Bos et al., Compositional Semantics in Verbmobil, Verbmobil-Report 135, 1996
+[BriGoe82] A. Brietzmann, G. G¨orz, Pragmatics in Speech Understanding Revisited, in: Proceedings of COL-
+ING 82, pp. 49–54, Prag 1982
+[Bun97] H. Bunt, Dynamic Interpretation and Dialogue Theory, in: M. Taylor, D. Bouwhuis, F. Neel (Ed.),
+The structure of multi-modal dialogue, vol. 2, John Benjamins, Amsterdam 1997
+[CarCar94] J. Chu-Carroll, S. Carberry, A Plan-Based Model for Response Generation in Collaborative Task-
+Oriented Dialogues, in: Proceedings of the Twelfth National Conference on Artiﬁcial Intelligence (AAAI ’94),
+Seattle 1994
+[Coe82] H. Coelho, A Formalism for the Structured Analysis of Dialogues, in: Proceedings of COLING 82, pp.
+61–70, Prag 1982
+[Coh90] P. Cohen, H. Levesque, Performatives in a Rationally Based Speech Act Theory, in: Proceedings of
+the 28nd Annual Meeting of the Association of Computational Linguistics (ACL 90), Pittsburgh 1990
+[CriWeb97] D. Cristea, B.L. Webber, Expectations in Incremental Discourse Processing, Technical Report,
+University A.I. Cuza, Iasi (Romania) 1997
+[Die87] G. Diewald, Telefondialog: Beschreibungsversuche zwischen Gespr¨achsanalyse und Textlinguistik, Zulas-
+sungsarbeit, Universit¨at Erlangen 1987 (in German)
+[DRI97] Discourse Ressource Initiative, Standards for Dialogue Coding in Natural Language Processing, Re-
+port No. 167, Dagstuhl-Seminar
+[vm83] K. Eberle, Zu einer Semantik f¨ur Dialogverstehen und ¨Ubersetzung, Verbmobil-Report 83, 1995
+[EckNie94] W. Eckert, H. Niemann Semantic Analysis in a Robust Spoken Dialog System, in: Proc. Int. Conf.
+on Spoken Language Processing, Yokohama, 1994, pp. 107–110
+[Eng88] U. Engel, Deutsche Grammatik, Groos, Heidelberg 1988 (in German)
+[GabRey92] D. Gabbay, U. Reyle, Direct Deductive Computation on Discourse Representation Structures,
+Linguistics and Philosophy, August 1992
+[Gar94] C. Gardent, Multiple Discourse Dependencies, ILLC report LP–94–18, Amsterdam 1994
+[Gar97] C. Gardent, Discourse TAG, CLAUS-Report 89, Saarbr¨ucken 1997
+[Grice] H.P. Grice, Logic and Conversation, in: P. Code, J. Morgan (Ed.), Syntax and Semantics, vol. 3, New
+York, Academic Press, S. 41–58
+[GroSto84] J. Groenendijk, M. Stokhof, Studies on the Semantics of Questions and the Pragmatics of Answers,
+PhD thesis, Centrale Interfaculteit, Amsterdam 1984
+[TrainsCorpus] D. Gross, J. F. Allen and D. R. Traum, The TRAINS 91 Dialogues, TRAINS Technical Note
+92-1, Computer Science Dept., University of Rochester, June 1993.
+[GroSid86] B. Grosz, C. Sidner, Attention, Intentions and the Structure of Discourse, Computational Linguis-
+tics, 12, pp. 175−204, 1986
+[KamRey93] Kamp, Hans and Reyle, Uwe: From Discourse to Logic, Kluwer, Dordrecht 1993
+[Kar77] L. Kartunnen, Syntax and Semantics of Questions, in: Linguistics and Philosophy 1, 1977
+[Kno96] A. Knott, A Data-Driven Methodology for Motivating a Set of Coherence Relations, PhD thesis, Uni-
+versity of Edinburgh 1996
+[Kus96] S. Kuschert, Higher Order Dynamics: Relating Operational and Denotational Semantics for λ-DRT,
+CLAUS-Report 84, Saarbr¨ucken 1996
+[Kyo91] J. Kowtko, et al., Conversational games within dialogue, in: Proceedings of the DANDI Workshop on
+Discourse Coherence, 1991.
+[Lam93] L. Lambert, Recognizing Complex Discourse Acts: A Trepartite Plan-Based Model of Dialogue, PhD
+thesis, University of Delaware 1993
+[Loc94] K. Lochbaum, Using Collaborative Plans to Model the Intentional Structure of Discourse, Harvard
+University, PhD Thesis, 1994.
+[Mar92] J. Martin, English text: systems and structure, Benjamins, Amsterdam 1992
+[Moe97] J.-U. Moeller, DIA-MOLE: An Unsupervised Learning Approach to Adaptive Dialogue Models for Spo-
+ken Dialogue Systems, in: Proceedings of EUROSPEECH 97, Rhodes, pp. 2271−2274
+[MooYou94] R. Young, J. Moore, DPOCL: a principled approach to discourse planning, in: Proceedings of the
+Seventh International Workshop on Natural Language Generation, Kennebunkport 1994
+[LudG¨oNie98] B. Ludwig, G. G¨orz, H. Niemann, Combining Expression And Content in Domains for Dialog
+Managers, in: Proceedings of DL 98, ITC-irst Technical Report 9805-03, Trento 1998
+[Poe94] M. Poesio, Discourse Interpretation and the Scope of Operators, Ph.D. Thesis, Computer Science Dept.,
+University of Rochester 1994
+[Pol95] L. Polanyi, The Lingustic Structure of Discourse, CSLI Technical Report 96-200, CSLI Publications,
+Stanford 1996
+16
+
+[Pul97] S. Pulman, Conversational Games, Belief Revision and Bayesian Networks, in: Proceedings of 7th Com-
+putational Linguistic in the Netherlands meeting, 1996
+[ReiMei95] Norbert Reitinger, Elisabeth Maier, Utilizing Statistical Dialogue Act Processing in VERBMO-
+BIL, Verbmobil-Report 80, 1995
+[SadMor97] D. Sadek, R. De Mori, Dialogue Systems, in: R. De Mori (Ed.), Spoken Dialogues with Com-
+puters, Academic Press 1997 (to appear)
+[Sea69] J. Searle, Speech Acts: An Essay in the Philosophy of Language, Cambridge University Press 1969
+[Web91] B.L. Webber, Structure and Ostension in the Interpretation of Discourse Deixis, in: Language and
+Cognitive Process, 6:(2), pp. 107−135, 1991
+[TraHin91] D. Traum, E. Hinkelman, Conversation Acts in Task-Oriented Spoken Dialog, in: Computational
+Intelligence, 8(3):575–599, 1992
+[Tra94] D. Traum, A Computational Theory of Grounding in Natural Language Conversation, Ph.D. Thesis,
+Computer Science Dept., University of Rochester 1994
+[TraAll94] D. Traum, J. Allen, Discouse Obligations in Dialogue Processing, in: Preceedings of the 32nd Annual
+Meeting of the Association of Computational Linguistics (ACL 94), pp. 1−8, Las Cruces 1994
+[TR663] D. Traum et al., Knowledge Representation in the TRAINS-93 Conversation System, Technical Report
+663, University of Rochester, 1996
+17

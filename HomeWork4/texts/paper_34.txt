@@ -1,0 +1,1153 @@
+arXiv:cs/9906009v1  [cs.CL]  6 Jun 1999
+Cascaded Markov Models
+Thorsten Brants
+Universit¨at des Saarlandes, Computerlinguistik
+D-66041 Saarbr¨ucken, Germany
+thorsten@coli.uni-sb.de
+In Proceedings of 9th Conference of the European Chapter of the
+Association for Computational Linguistics EACL-99. Bergen, Norway, 1999
+Abstract
+This paper presents a new approach to
+partial parsing of context-free structures.
+The approach is based on Markov Mod-
+els. Each layer of the resulting structure
+is represented by its own Markov Model,
+and output of a lower layer is passed as
+input to the next higher layer. An em-
+pirical evaluation of the method yields
+very good results for NP/PP chunking of
+German newspaper texts.
+1
+Introduction
+Partial parsing, often referred to as chunking, is
+used as a pre-processing step before deep analysis
+or as shallow processing for applications like in-
+formation retrieval, messsage extraction and text
+summarization.
+Chunking concentrates on con-
+structs that can be recognized with a high degree
+of certainty. For several applications, this type of
+information with high accuracy is more valuable
+than deep analysis with lower accuracy.
+We will present a new approach to partial pars-
+ing that uses Markov Models.
+The presented
+models are extensions of the part-of-speech tag-
+ging technique and are capable of emitting struc-
+ture. They utilize context-free grammar rules and
+add left-to-right transitional context information.
+This type of model is used to facilitate the syntac-
+tic annotation of the NEGRA corpus of German
+newspaper texts (Skut et al., 1997).
+Part-of-speech tagging is the assignment of syn-
+tactic categories (tags) to words that occur in the
+processed text.
+Among others, this task is ef-
+ﬁciently solved with Markov Models.
+States of
+a Markov Model represent syntactic categories
+(or tuples of syntactic categories), and outputs
+represent words and punctuation (Church, 1988;
+DeRose, 1988, and others). This technique of sta-
+tistical part-of-speech tagging operates very suc-
+cessfully, and usually accuracy rates between 96
+and 97% are reported for new, unseen text.
+Brants et al. (1997) showed that the technique
+of statistical tagging can be shifted to the next
+level of syntactic processing and is capable of as-
+signing grammatical functions.
+These are func-
+tions like subject, direct object, head, etc. They
+mark the function of a child node within its par-
+ent phrase.
+Figure 1 shows an example sentence and its
+structure. The terminal sequence is complemen-
+ted by tags (Stuttgart-T¨ubingen-Tagset, Thielen
+and Schiller, 1995). Non-terminal nodes are la-
+beled with phrase categories, edges are labeled
+with grammatical functions (NEGRA tagset).
+In this paper, we will show that Markov Mod-
+els are not restricted to the labeling task (i.e., the
+assignment of part-of-speech labels, phrase labels,
+or labels for grammatical functions), but are also
+capable of generating structural elements. We will
+use cascades of Markov Models.
+Starting with
+the part-of-speech layer, each layer of the result-
+ing structure is represented by its own Markov
+Model. A lower layer passes its output as input
+to the next higher layer. The output of a layer
+can be ambiguous and it is complemented by a
+probability distribution for the alternatives.
+This type of parsing is inspired by ﬁnite state
+cascades which are presented by several authors.
+CASS (Abney, 1991; Abney, 1996) is a partial
+parser that recognizes non-recursive basic phrases
+(chunks) with ﬁnite state transducers.
+Each
+transducer emits a single best analysis (a longest
+match) that serves as input for the transducer at
+the next higher level. CASS needs a special gram-
+mar for which rules are manually coded.
+Each
+layer creates a particular subset of phrase types.
+FASTUS (Appelt et al., 1993) is heavily based
+on pattern matching. Each pattern is associated
+with one or more trigger words. It uses a series of
+non-deterministic ﬁnite-state transducers to build
+chunks; the output of one transducer is passed
+
+Ein
+ART
+An
+enormer
+ADJA
+enormous
+Posten
+NN
+amount
+an
+APPR
+of
+Arbeit
+NN
+work
+und
+KON
+and
+Geld
+NN
+money
+wird
+VAFIN
+is
+von
+APPR
+by
+den
+ART
+the
+37
+CARD
+37
+beteiligten
+ADJA
+involved
+Vereinen
+NN
+organizations
+aufgebracht
+VVPP
+CJ
+CD
+CJ
+AC
+NK
+NK
+NK
+NK
+AC
+CNP
+NK
+PP
+SBP
+HD
+NK
+NK
+NK
+PP
+MNR
+NP
+SB
+HD
+VP
+OC
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+500
+503
+501
+504
+502
+505
+S
+raised
+‘A large amount of money and work was raised by the involved organizations’
+Figure 1: Example sentence and annotation. The structure consists of terminal nodes (words and their
+parts-of-speech), non-terminal nodes (phrases) and edges (labeled with grammatical functions).
+as input to the next transducer. (Roche, 1994)
+uses the ﬁx point of a ﬁnite-state transducer. The
+transducer is iteratively applied to its own out-
+put until it remains identical to the input. The
+method is successfully used for eﬃcient processing
+with large grammars. (Cardie and Pierce, 1998)
+present an approach to chunking based on a mix-
+ture of ﬁnite state and context-free techniques.
+They use NP rules of a pruned treebank grammar.
+For processing, each point of a text is matched
+against the treebank rules and the longest match
+is chosen. Cascades of automata and transducers
+can also be found in speech processing, see e.g.
+(Pereira et al., 1994; Mohri, 1997).
+Contrary to ﬁnite-state transducers, Cascaded
+Markov Models exploit probabilities when pro-
+cessing layers of a syntactic structure. They do
+not generate longest matches but most-probable
+sequences. Furthermore, a higher layer sees dif-
+ferent alternatives and their probabilities for the
+same span. It can choose a lower ranked alterna-
+tive if it ﬁts better into the context of the higher
+layer. An additional advantage is that Cascaded
+Markov Models do not need a “stratiﬁed” gram-
+mar (i.e., each layer encodes a disjoint subset of
+phrases). Instead the system can be immediately
+trained on existing treebank data.
+The rest of this paper is structured as follows.
+Section 2 addresses the encoding of parsing pro-
+cesses as Markov Models. Section 3 presents Cas-
+caded Markov Models. Section 4 reports on the
+evaluation of Cascaded Markov Models using tree-
+bank data. Finally, section 5 will give conclusions.
+2
+Encoding of Syntactical
+Information as Markov Models
+When encoding a part-of-speech tagger as a
+Markov Model, states represent syntactic cate-
+gories1 and outputs represent words.
+Contex-
+tual probabilities of tags are encoded as transi-
+tion probabilities of tags, and lexical probabilities
+of the Markov Model are encoded as output prob-
+abilities of words in states.
+We introduce a modiﬁcation to this encoding.
+States additionally may represent non-terminal
+categories (phrases). These new states emit par-
+tial parse trees (cf. ﬁgure 2). This can be seen as
+collapsing a sequence of terminals into one non-
+terminal.
+Transitions into and out of the new
+states are performed in the same way as for words
+and parts-of-speech.
+Transitional probabilities for this new type of
+Markov Models can be estimated from annotated
+data in a way very similar to estimating proba-
+bilities for a part-of-speech tagger. The only dif-
+ference is that sequences of terminals may be re-
+placed by one non-terminal.
+Lexical probabilities need a new estimation
+method. We use probabilities of context-free par-
+tial parse trees. Thus, the lexical probability of
+the state NP in ﬁgure 2 is determined by
+P(NP →ART ADJA NN,
+ART →ein, ADJA →enormer, NN →Posten)
+=
+P(NP →ART ADJA NN)
+·P(ART →ein) · P(ADJA →enormer)
+·P(NN →Posten)
+Note that the last three probabilities are the same
+as for the part-of-speech model.
+1Categories and states directly correspond in bi-
+gram models. For higher order models, tuples of cat-
+egories are combined to one state.
+
+NP
+APPR
+CNP
+VAFIN
+PP
+VVPP
+an
+wird
+aufgebracht
+end
+start
+P(NP|$,$)
+P(APPR|$,NP)
+P(CNP|NP,APPR)
+P(VAFIN|APPR,CNP)
+P(PP|CNP,VAFIN)
+P(VVPP|VAFIN,PP)
+P($|PP,VVPP)
+ART ADJA NN
+NN
+KON NN
+ART CARD ADJA
+APPR
+NN
+P(   |NP)
+P(   |CNP)
+P(   |PP)
+P(an|APPR)
+P(wird
+  |VAFIN)
+P(aufgebracht|VVPP)
+ein enormer Posten
+Arbeit und Geld
+von  den 37 beteiligten Vereinen
+Figure 2: Part of the Markov Models for layer 1 that is used to process the sentence of ﬁgure 1. Contrary
+to part-of-speech tagging, outputs of states may consist of structures with probabilities according to a
+stochastic context-free grammar.
+3
+Cascaded Markov Models
+The basic idea of Cascaded Markov Models is to
+construct the parse tree layer by layer, ﬁrst struc-
+tures of depth one, then structures of depth two,
+and so forth. For each layer, a Markov Model de-
+termines the best set of phrases. These phrases
+are used as input for the next layer, which adds
+one more layer. Phrase hypotheses at each layer
+are generated according to stochastic context-free
+grammar rules (the outputs of the Markov Model)
+and subsequently ﬁltered from left to right by
+Markov Models.
+Figure 3 gives an overview of the parsing model.
+Starting with part-of-speech tagging, new phrases
+are created at higher layers and ﬁltered by Markov
+Models operating from left to right.
+3.1
+Tagging Lattices
+The processing example in ﬁgure 3 only shows the
+best hypothesis at each layer. But there are alter-
+native phrase hypotheses and we need to deter-
+mine the best one during the parsing process.
+All rules of the generated context-free grammar
+with right sides that are compatible with part of
+the sequence are added to the search space. Fig-
+ure 4 shows an example for hypotheses at the ﬁrst
+layer when processing the sentence of ﬁgure 1.
+Each bar represents one hypothesis. The position
+of the bar indicates the covered words. It is la-
+beled with the type of the hypothetical phrase,
+an index in the upper left corner for later ref-
+erence, the negative logarithm of the probability
+that this phrase generates the terminal yield (i.e.,
+the smaller the better; probabilities for part-of-
+speech tags are omitted for clarity). This part is
+very similar to chart entries of a chart parser.
+All phrases that are newly introduced at this
+layer are marked with an asterisk (*). They are
+produced according to context-free rules, based
+on the elements passed from the next lower layer.
+The layer below layer 1 is the part-of-speech layer.
+The hypotheses form a lattice, with the word
+boundaries being states and the phrases being
+edges. Selecting the best hypothesis means to ﬁnd
+the best path from node 0 to the last node (node
+14 in the example). The best path can be eﬃ-
+ciently found with the Viterbi algorithm (Viterbi,
+1967), which runs in time linear to the length of
+the word sequence. Having this view of ﬁnding the
+best hypothesis, processing of a layer is similar to
+word lattice processing in speech recognition (cf.
+Samuelsson, 1997).
+Two types of probabilities are important when
+searching for the best path in a lattice.
+First,
+these are probabilities of the hypotheses (phrases)
+generating the underlying terminal nodes (words).
+They are calculated according to a stochastic
+context-free grammar and given in ﬁgure 4. The
+second type are context probabilities, i.e., the
+probability that some type of phrase follows or
+precedes another. The two types of probabilities
+coincide with lexical and contextual probabilities
+of a Markov Model, respectively.
+According to a trigram model (generated from
+a corpus), the path in ﬁgure 4 that is marked grey
+is the best path in the lattice. Its probability is
+composed of
+Pbest =
+P(NP|$, $)P(NP ⇒∗ein enormer Posten)
+·P(APPR|$, NP)P(APPR →an)
+·P(CNP|NP, APPR)P(CNP ⇒∗Arbeit und Geld)
+·P(VAFIN|APPR, CNP)P(VAFIN →wird)
+
+NE
+VAFIN APPR PPOSAT NN
+NN
+VVPP
+PP
+NE
+VAFIN
+NN
+NE
+VAFIN
+VP
+S
+0
+1
+2
+3
+Tagging
+Grammatical
+Functions
+NK
+MO
+OA
+HD
+SB
+HD
+OC
+Kronos haben
+mit
+ihrer
+Brücken
+Musik
+geschlagen
+NE
+VAFIN APPR PPOSAT NN
+NN
+VVPP
+AC
+NK
+PP
+VP
+S
+NK
+AC
+MO
+OA
+HD
+HD
+SB
+OC
+NK
+Part−of−Speech Tagging
+Cascaded Markov Models
+VVPP
+Layer
+Kronos
+have
+with
+their
+bridges
+music
+built
+‘‘Kronos built bridges with their music’’
+Kronos haben
+mit
+ihrer
+Brücken
+Musik
+geschlagen
+Input
+Figure 3: The combined, layered processing model. Starting with part-of-speech tagging (layer 0), pos-
+sibly ambiguous output together with probabilities is passed to higher layers (only the best hypotheses
+are shown for clarity). At each layer, new phrases and grammatical functions are added.
+·P(PP|CNP, VAFIN)
+P(PP ⇒∗von den 37 beteiligten Vereinen)
+·P(VVPP|VAFIN, PP)P(VVPP →aufgebracht)
+·P($|PP, VVPP).
+Start and end of the path are indicated by a
+dollar sign ($). This path is very close to the cor-
+rect structure for layer 1. The CNP and PP are
+correctly recognized. Additionally, the best path
+correctly predicts that APPR, VAFIN and VVPP
+should not be attached in layer 1. The only error
+is the NP ein enormer Posten. Although this is on
+its own a perfect NP, it is not complete because
+the PP an Arbeit und Geld is missing. ART, ADJA
+and NN should be left unattached in this layer in
+order to be able to create the correct structure at
+higher layers.
+The presented Markov Models act as ﬁlters.
+The probability of a connected structure is de-
+termined only based on a stochastic context-free
+grammar. The joint probabilities of unconnected
+partial structures are determined by additionally
+using Markov Models. While building the struc-
+ture bottom up, parses that are unlikely according
+to the Markov Models are pruned.
+3.2
+The Method
+The standard Viterbi algorithm is modiﬁed in or-
+der to process Markov Models operating on lat-
+tices. In part-of-speech tagging, each hypothesis
+(a tag) spans exactly one word. Now, a hypothesis
+can span an arbitrary number of words, and the
+same span can be covered by an arbitrary num-
+ber of alternative word or phrase hypotheses. Us-
+ing terms of a Markov Model, a state is allowed
+to emit a context-free partial parse tree, starting
+with the represented non-terminal symbol, yield-
+ing part of the sequence of words. This is in con-
+trast to standard Markov Models. There, states
+emit atomic symbols. Note that an edge in the lat-
+tice is represented by a state in the corresponding
+Markov Model.
+Figure 2 shows the part of the
+Markov Model that represents the best path in
+the lattice of ﬁgure 4.
+The equations of the Viterbi algorithm are
+adapted to process a language model operating
+on a lattice. Instead of the words, the gaps be-
+tween the words are enumerated (see ﬁgure 4),
+and an edge between two states can span one or
+more words, such that an edge is represented by
+a triple ⟨t, t′, q⟩, starting at time t, ending at time
+t′ and representing state q.
+We introduce accumulators ∆t,t′(q) that col-
+lect the maximum probability of state q covering
+words from position t to t′. We use δi,j(q) to de-
+note the probability of the deriviation emitted by
+state q having a terminal yield that spans posi-
+tions i to j. These are needed here as part of the
+accumulators ∆.
+Initialization:
+∆0,t(q) = P(q|qs)δ0,t(q)
+(1)
+
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+Layer 1
+Ein
+enor-
+mer
+Po-
+sten
+an
+Ar-
+beit
+und
+Geld
+wird
+von
+den
+37
+betei-
+ligten
+Ver-
+einen
+aufge-
+bracht
+1ART
+16NP*
+6.60
+17NP*
+9.68
+2ADJA
+18AP*
+10.28
+19NP*
+7.69
+3NN
+4APPR
+20AP*
+9.25
+21PP*
+6.38
+5NN
+22CNP*
+9.05
+6KON
+7NN
+23VP*
+9.00
+8VAFIN
+9APPR
+24PP*
+6.22
+25AVP* 6.88
+26PP*
+10.23
+27PP*
+17.96
+10ART
+28NP*
+8.63
+29NM*
+9.23
+11CARD
+30AP*
+11.55
+31NP*
+12.24
+12ADJA
+32NP*
+11.51
+13NN
+14VVPP
+Figure 4: Phrase hypotheses according to a context-free grammar for the ﬁrst layer. Hypotheses marked
+with an asterisk (*) are newly generated at this layer, the others are passed from the next lower layer
+(layer 0: part-of-speech tagging). The best path in the lattice is marked grey.
+Recursion:
+∆t,t′(q) =
+max
+⟨t′′,t,q′⟩∈Lattice
+∆t′′,t(q′)P(q|q′)δt,t′(q),
+(2)
+for 1 ≤t < T .
+Termination:
+max
+Q∈Q∗P(Q, Lattice) =
+max
+⟨t,T,q⟩∈Lattice
+∆t,T (q)P(qe|q).
+(3)
+Additionally, it is necessary to keep track of the el-
+ements in the lattice that maximized each ∆t,t′(q).
+When reaching time T , we get the best last ele-
+ment in the lattice
+⟨tm
+1 , T, qm
+1 ⟩=
+argmax
+⟨t,T,q⟩∈Lattice
+∆t,T (q)P(qe|q). (4)
+Setting tm
+0
+=
+T ,
+we collect the arguments
+⟨t′′, t, q′⟩∈Lattice that maximized equation 2 by
+walking backwards in time:
+⟨tm
+i+1, tm
+i , qm
+i+1⟩=
+argmax
+⟨t′′,tm
+i ,q′⟩∈Lattice
+∆t′′,tm
+i (q′)P(qm
+i |q′)δtm
+i ,tm
+i−1(qi)
+(5)
+for i ≥1, until we reach tm
+k = 0. Now, qm
+1 . . . qm
+k
+is the best sequence of phrase hypotheses (read
+backwards).
+3.3
+Passing Ambiguity to the Next Layer
+The process can move on to layer 2 after the ﬁrst
+layer is computed. The results of the ﬁrst layer are
+taken as the base and all context-free rules that
+apply to the base are retrieved. These again form
+a lattice and we can calculate the best path for
+layer 2.
+The Markov Model for layer 1 operates on the
+output of the Markov Model for part-of-speech
+tagging, the model for layer 2 operates on the out-
+put of layer 1, and so on. Hence the name of the
+processing model: Cascaded Markov Models.
+Very often, it is not suﬃcient to calculate just
+the best sequences of words/tags/phrases. This
+may result in an error leading to subsequent er-
+rors at higher layers. Therefore, we not only cal-
+culate the best sequence but several top ranked
+sequences. The number of the passed hypotheses
+depends on a pre-deﬁned threshold θ ≥1. We se-
+lect all hypotheses with probabilities P ≥Pbest/θ.
+These are passed to the next layer together with
+their probabilities.
+3.4
+Parameter Estimation
+Transitional parameters for Cascaded Markov
+Models are estimated separately for each layer.
+Output parameters are the same for all layers,
+they are taken from the stochastic context-free
+grammar that is read oﬀthe treebank.
+Training on annotated data is straight forward.
+First, we number the layers, starting with 0 for
+the part-of-speech layer. Subsequently, informa-
+tion for the diﬀerent layers is collected.
+Each sentence in the corpus represents one
+training sequence for each layer. This sequence
+consists of the tags or phrases at that layer. If
+a span is not covered by a phrase at a particular
+layer, we take the elements of the highest layer
+below the actual layer. Figure 5 shows the train-
+ing sequences for layers 0 – 4 generated from the
+sentence in ﬁgure 1. Each sentence gives rise to
+one training sequence for each layer. Contextual
+parameter estimation is done in analogy to models
+for part-of-speech tagging, and the same smooth-
+ing techniques can be applied.
+We use a linear
+interpolation of uni-, bi-, and trigram models.
+A stochastic context-free grammar is read oﬀ
+the corpus.
+The rules derived from the anno-
+tated sentence in ﬁgure 1 are also shown in ﬁgure
+5. The grammar is used to estimate output pa-
+rameters for all Markov Models, i.e., they are the
+
+Layer Sequence
+4
+S
+3
+NP
+VAFIN
+VP
+2
+ART ADJA NN
+PP
+VAFIN
+VP
+1
+ART ADJA NN APPR
+CNP
+VAFIN
+PP
+VVPP
+0
+ART ADJA NN APPR NN KON NN VAFIN APPR ART CARD ADJA NN VVPP
+Context-free rules and their frequencies
+S
+→NP VAFIN VP
+(1)
+PP
+→APPR ART CARD ADJA NN (1)
+NP
+→ART ADJA NN PP (1)
+ART
+→Ein
+(1)
+PP
+→APPR CNP
+(1)
+ADJA →enormer
+(1)
+CNP →NN KON NN
+(1)
+· · ·
+· · ·
+VP
+→PP VVPP
+(1)
+VVPP →aufgebracht
+(1)
+Figure 5: Training material generated from the sentence in ﬁgure 1. The sequences for layers 0 – 4 are
+used to estimate transition probabilities for the corresponding Markov Models. The context-free rules
+are used to estimate the SCFG, which determines the output probabilities of the Markov Models.
+same for all layers. We could estimate probabil-
+ities for rules separately for each layer, but this
+would worsen the sparse data problem.
+4
+Experiments
+This section reports on results of experiments with
+Cascaded Markov Models. We evaluate chunking
+precision and recall, i.e., the recognition of kernel
+NPs and PPs. These exclude prenominal adverbs
+and postnominal PPs and relative clauses, but in-
+clude all other prenominal modiﬁers, which can be
+fairly complex adjective phrases in German. Fig-
+ure 6 shows an example of a complex NP and the
+output of the parsing process.
+For our experiments, we use the NEGRA corpus
+(Skut et al., 1997). It consists of German news-
+paper texts (Frankfurter Rundschau) that are an-
+notated with predicate-argument structures. We
+extracted all structures for NPs, PPs, APs, AVPs
+(i.e., we mainly excluded sentences, VPs and co-
+ordinations). The version of the corpus used con-
+tains 17,000 sentences (300,000 tokens).
+The corpus was divided into training part (90%)
+and test part (10%). Experiments were repeated
+10 times, results were averaged. Cross-evaluation
+was done in order to obtain more reliable perfor-
+mance estimates than by just one test run. Input
+of the process is a sequence of words (divided
+into sentences), output are part-of-speech tags
+and structures like the one indicated in ﬁgure 6.
+Figure 7 presents results of the chunking task
+using Cascaded Markov Models for diﬀerent num-
+bers of layers.2
+Percentages are slightly below
+those presented by (Skut and Brants, 1998). But
+2The ﬁgure indicates unlabeled recall and preci-
+sion. Diﬀerences to labeled recall/precision are small,
+since the number of diﬀerent non-terminal categories
+is very restricted.
+they started with correctly tagged data, so our
+task is harder since it includes the process of part-
+of-speech tagging.
+Recall increases with the number of layers. It
+ranges from 54.0% for 1 layer to 84.8% for 9 lay-
+ers.
+This could be expected, because the num-
+ber of layers determines the number of phrases
+that can be parsed by the model. The additional
+line for “topline recall” indicates the percentage of
+phrases that can be parsed by Cascaded Markov
+Models with the given number of layers. All nodes
+that belong to higher layers cannot be recognized.
+Precision slightly decreases with the number of
+layers. It ranges from 91.4% for 1 layer to 88.3%
+for 9 layers.
+The F-score is a weighted combination of recall
+R and precision P and deﬁned as follows:
+F = (β2 + 1)PR
+β2P + R
+(6)
+β is a parameter encoding the importance of recall
+and precision.
+Using an equal weight for both
+(β = 1), the maximum F-score is reached for 7
+layers (F =86.5%).
+The part-of-speech tagging accuracy slightly in-
+creases with the number of Markov Model layers
+(bottom line in ﬁgure 7). This can be explained by
+top-down decisions of Cascaded Markov Models.
+A model at a higher layer can select a tag with a
+lower probability if this increases the probability
+at that layer. Thereby some errors made at lower
+layers can be corrected. This leads to the increase
+of up to 0.3% in accuracy.
+Results
+for
+chunking
+Penn
+Treebank data
+were previously presented by several authors
+(Ramshaw and Marcus, 1995; Argamon et al.,
+1998; Veenstra, 1998; Cardie and Pierce, 1998).
+These are not directly comparable to our results,
+
+die
+ART
+the
+von
+APPR
+by
+der
+ART
+the
+Bundesregierung
+NN
+government
+angestrebte
+ADJA
+intended
+Entlassung
+NN
+dismissal
+des
+ART
+(of) the
+Bundes
+NN
+federation
+aus
+APPR
+from
+einzelnen
+ADJA
+several
+Bereichen
+NN
+areas
+AC
+NK
+NK
+AC
+NK
+NK
+PP
+NK
+NK
+NP
+PP
+SBP
+HD
+NK
+AP
+NK
+NK
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+500
+501
+502
+503
+504
+NP
+‘the dismissal of the federation from several areas that was intended by the government’
+Figure 6: Complex German NP and chunker output (postnominal genitive and PP are not attached).
+NEGRA Corpus: Chunking Results
+1
+2
+3
+4
+5
+6
+7
+8
+9
+60
+70
+80
+90
+100
+Recall/Precision
+# Layers
+96.2
+96.3
+96.4
+96.4
+96.5
+96.5
+96.5
+96.5
+96.5 % POS accuracy
+Topline Recall
+min =
+72.6%
+max=
+100.0%
+•
+Recall
+min =
+54.0%
+max=
+84.8%
+◦
+Precision
+min =
+88.3%
+max=
+91.4%
+•
+•
+•
+•
+•
+•
+•
+•
+◦
+◦
+◦
+◦
+◦
+◦
+◦
+◦
+◦
+Figure 7: NP/PP chunking results for the NEGRA Corpus. The diagram shows recall and precision
+depending on the number of layers that are used for parsing. Layer 0 is used for part-of-speech tagging,
+for which tagging accuracies are given at the bottom line. Topline recall is the maximum recall possible
+for that number of layers.
+because they processed a diﬀerent language and
+generated only one layer of structure (the chunk
+boundaries), while our algorithm also generates
+the internal structure of chunks. But generally,
+Cascaded Markov Models can be reduced to gen-
+erating just one layer and can be trained on Penn
+Treebank data.
+5
+Conclusion and Future Work
+We have presented a new parsing model for shal-
+low processing. The model parses by represent-
+ing each layer of the resulting structure as a sep-
+arate Markov Model. States represent categories
+of words and phrases, outputs consist of partial
+parse trees. Starting with the layer for part-of-
+speech tags, the output of lower layers is passed
+as input to higher layers. This type of model is
+restricted to a ﬁxed maximum number of layers in
+the parsed structure, since the number of Markov
+Models is determined before parsing. While the
+eﬀects of these restrictions on the parsing of sen-
+tences and VPs are still to be investigated, we ob-
+tain excellent results for the chunking task, i.e.,
+the recognition of kernel NPs and PPs.
+It will be interesting to see in future work if Cas-
+caded Markov Models can be extended to parsing
+sentences and VPs. The average number of lay-
+ers per sentence in the NEGRA corpus is only 5;
+99.9% of all sentences have 10 or less layers, thus
+a very limited number of Markov Models would
+be suﬃcient.
+Cascaded
+Markov
+Models
+add
+left-to-right
+context-information to context-free parsing. This
+contextualization is orthogonal to another impor-
+tant trend in language processing: lexicalization.
+We expect that the combination of these tech-
+niques results in improved models.
+We presented the generation of parameters from
+annotated corpora and used linear interpolation
+for smoothing.
+While we do not expect im-
+
+provements by re-estimation on raw data, other
+smoothing methods may result in better accura-
+cies, e.g. the maximum entropy framework. Yet,
+the high complexity of maximum entropy parame-
+ter estimation requires careful pre-selection of rel-
+evant linguistic features.
+The presented Markov Models act as ﬁlters.
+The probability of the resulting structure is de-
+termined only based on a stochastic context-free
+grammar.
+While building the structure bottom
+up, parses that are unlikely according to the
+Markov Models are pruned.
+We think that a
+combined probability measure would improve the
+model. For this, a mathematically motivated com-
+bination needs to be determined.
+Acknowledgements
+I would like to thank Hans Uszkoreit, Yves
+Schabes, Wojciech Skut, and Matthew Crocker for
+fruitful discussions and valuable comments on the
+work presented here. And I am grateful to Sabine
+Kramp for proof-reading this paper.
+This research was funded by the Deutsche
+Forschungsgemeinschaft in the Sonderforschungs-
+bereich 378, Project C3 NEGRA.
+References
+[Abney1991] Steven Abney.
+1991.
+Parsing by
+chunks. In Robert Berwick, Steven Abney, and
+Carol Tenny, editors, Principle-Based Parsing,
+Dordrecht. Kluwer Academic Publishers.
+[Abney1996] Steven Abney. 1996. Partial parsing
+via ﬁnite-state cascades. In Proceedings of the
+ESSLLI Workshop on Robust Parsing, Prague,
+Czech Republic.
+[Appelt et al.1993] D. Appelt, J. Hobbs, J. Bear,
+D. J. Israel, and M. Tyson. 1993. FASTUS: a
+ﬁnite-state processor for information extraction
+from real-world text. In Proceedings of IJCAI-
+93, Washington, DC.
+[Argamon et al.1998] Shlomo Argamon, Ido Da-
+gan, and Yuval Krymolowski. 1998. A memory-
+based approach to learning shallow natural lan-
+guage patterns. In Proceedings of the 17th In-
+ternational Conference on Computational Lin-
+guistics COLING-ACL-98), Montreal, Canada.
+[Brants et al.1997] Thorsten
+Brants,
+Wojciech
+Skut, and Brigitte Krenn.
+1997.
+Tagging
+grammatical functions.
+In Proceedings of the
+Conference on Empirical Methods in Natural
+Language Processing EMNLP-97, Providence,
+RI, USA.
+[Cardie and Pierce1998] Claire Cardie and David
+Pierce. 1998. Error-driven pruning of treebank
+grammars for base noun phrase identiﬁcation.
+In Proceedings of the 17th International Confer-
+ence on Computational Linguistics COLING-
+ACL-98), Montreal, Canada.
+[Church1988] Kenneth Ward Church.
+1988.
+A
+stochastic parts program and noun phrase
+parser for unrestricted text.
+In Proceedings
+of the Second Conference on Applied Natural
+Language Processing ANLP-88, pages 136–143,
+Austin, Texas, USA.
+[DeRose1988] Steven J. DeRose. 1988. Grammat-
+ical category disambiguation by statistical opti-
+mization. Computational Linguistics, 14(1):31–
+39.
+[Mohri1997] Mehryar Mohri.
+1997.
+Finite-state
+transducers in language and speech processing.
+Computational Linguistics, 23(2).
+[Pereira et al.1994] Fernando Pereira, Michael Ri-
+ley, and Richard Sproat. 1994. Weighted ratio-
+nal transductions and their application to hu-
+man language processing. In Proceedings of the
+Workshop on Human Language Technology, San
+Francisco, CA. Morgan Kaufmann.
+[Ramshaw and Marcus1995] Lance A. Ramshaw
+and Mitchell P. Marcus. 1995. Text chunking
+using transformation-based learning.
+In Pro-
+ceedings of the third Workshop on Very Large
+Corpora, Dublin, Ireland.
+[Roche1994] Emmanuel Roche. 1994. Two parsing
+algorithms by means of ﬁnite state transducers.
+In Proceedings of the 15th International Confer-
+ence on Computational Linguistics COLING-
+94, pages 431–435, Kyoto, Japan.
+[Samuelsson1997] Christer Samuelsson. 1997. Ex-
+tending n-gram tagging to word graphs. In Pro-
+ceedings of the 2nd International Conference on
+Recent Advances in Natural Language Process-
+ing RANLP-97, Tzigov Chark, Bulgaria.
+[Skut and Brants1998] Wojciech
+Skut
+and
+Thorsten Brants. 1998. A maximum-entropy
+partial parser for unrestricted text.
+In Sixth
+Workshop on Very Large Corpora, Montreal,
+Canada.
+[Skut et al.1997] Wojciech Skut, Brigitte Krenn,
+Thorsten Brants, and Hans Uszkoreit.
+1997.
+An annotation scheme for free word order lan-
+guages.
+In Proceedings of the Fifth Confer-
+ence on Applied Natural Language Processing
+ANLP-97, Washington, DC.
+[Thielen and Schiller1995] Christine Thielen and
+Anne Schiller. 1995. Ein kleines und erweitertes
+Tagset f¨urs Deutsche. In Tagungsberichte des
+Arbeitstreﬀens Lexikon + Text 17./18. Februar
+1994,
+Schloß Hohent¨ubingen. Lexicographica
+Series Maior, T¨ubingen. Niemeyer.
+[Veenstra1998] Jorn Veenstra.
+1998.
+Fast NP
+chunking using memory-based learning tech-
+niques. In Proceedings of the Eighth Belgian-
+Dutch Conference on Machine Learning, Wa-
+geningen.
+
+[Viterbi1967] A. Viterbi. 1967. Error bounds for
+convolutional codes and an asymptotically op-
+timum decoding algorithm. In IEEE Transac-
+tions on Information Theory, pages 260–269.

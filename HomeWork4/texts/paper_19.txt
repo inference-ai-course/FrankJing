@@ -1,0 +1,352 @@
+arXiv:cs/9811025v2  [cs.CL]  25 Jan 2000
+A Structured Language Model
+Ciprian Chelba
+The Johns Hopkins University
+CLSP, Barton Hall 320
+3400 N. Charles Street, Baltimore, MD-21218
+chelba@jhu.edu
+Abstract
+The paper presents a language model that
+develops syntactic structure and uses it to
+extract meaningful information from the
+word history, thus enabling the use of
+long distance dependencies. The model as-
+signs probability to every joint sequence
+of words–binary-parse-structure with head-
+word annotation.
+The model, its proba-
+bilistic parametrization, and a set of ex-
+periments meant to evaluate its predictive
+power are presented.
+1
+Introduction
+The main goal of the proposed project is to develop
+a language model(LM) that uses syntactic structure.
+The principles that guided this proposal were:
+• the model will develop syntactic knowledge as a
+built-in feature; it will assign a probability to every
+joint sequence of words–binary-parse-structure;
+• the model should operate in a left-to-right man-
+ner so that it would be possible to decode word lat-
+tices provided by an automatic speech recognizer.
+The model consists of two modules: a next word
+predictor which makes use of syntactic structure as
+developed by a parser. The operations of these two
+modules are intertwined.
+2
+The Basic Idea and Terminology
+Consider predicting the word barked in the sen-
+tence:
+the dog I heard yesterday barked again.
+A 3-gram approach would predict barked from
+(heard, yesterday) whereas it is clear that the
+predictor should use the word dog which is out-
+side the reach of even 4-grams.
+Our assumption
+is that what enables us to make a good predic-
+tion of barked is the syntactic structure in the
+the dog I heard yesterday barked
+heard
+dog
+dog
+Figure 1: Partial parse
+<s>  w_1 ...  w_p   ........ w_q ... w_r  w_{r+1} ... w_k   w_{k+1}  ..... w_n  </s>
+T_{-m}
+<s>=h_{-m}
+T_{-m+1}
+T_0
+T{-1}
+h_{-m+1}
+h_{-1}
+h_0
+Figure 2: A word-parse k-preﬁx
+past.
+The correct partial parse of the word his-
+tory when predicting barked is shown in Figure 1.
+The word dog is called the headword of the con-
+stituent ( the (dog (...))) and dog is an exposed
+headword when predicting barked — topmost head-
+word in the largest constituent that contains it. The
+syntactic structure in the past ﬁlters out irrelevant
+words and points to the important ones, thus en-
+abling the use of long distance information when
+predicting the next word. Our model will assign a
+probability P(W, T ) to every sentence W with ev-
+ery possible binary branching parse T and every
+possible headword annotation for every constituent
+of T .
+Let W be a sentence of length l words to
+which we have prepended <s> and appended </s>
+so that w0 =<s> and wl+1 =</s>. Let Wk be the
+word k-preﬁx w0 . . . wk of the sentence and WkTk
+the word-parse k-preﬁx.
+To stress this point, a
+word-parse k-preﬁx contains only those binary trees
+whose span is completely included in the word k-
+preﬁx, excluding w0 =<s>. Single words can be re-
+garded as root-only trees. Figure 2 shows a word-
+parse k-preﬁx; h_0 .. h_{-m} are the exposed head-
+words. A complete parse — Figure 3 — is any bi-
+nary parse of the w1 . . . wl </s> sequence with the
+restriction that </s> is the only allowed headword.
+
+</s>
+</s>
+<s>   w_1  ......  w_l   </s> 
+Figure 3: Complete parse
+Note that (w1 . . . wl) needn’t be a constituent, but
+for the parses where it is, there is no restriction on
+which of its words is the headword.
+The model will operate by means of two modules:
+• PREDICTOR predicts the next word wk+1 given
+the word-parse k-preﬁx and then passes control to
+the PARSER;
+• PARSER grows the already existing binary
+branching structure by repeatedly generating the
+transitions adjoin-left or adjoin-right until it
+passes control to the PREDICTOR by taking a null
+transition.
+The operations performed by the PARSER en-
+sure that all possible binary branching parses with
+all possible headword assignments for the w1 . . . wk
+word sequence can be generated.
+They are illus-
+trated by Figures 4-6. The following algorithm de-
+scribes how the model generates a word sequence
+with a complete parse (see Figures 3-6 for notation):
+Transition t;
+// a PARSER transition
+generate <s>;
+do{
+predict next_word;
+//PREDICTOR
+do{
+//PARSER
+if(T_{-1} != <s> )
+if(h_0 == </s>)
+t = adjoin-right;
+else t = {adjoin-{left,right}, null};
+else
+t = null;
+}while(t != null)
+}while(!(h_0 == </s> && T_{-1} == <s>))
+t = adjoin-right; // adjoin <s>; DONE
+It is easy to see that any given word sequence with a
+possible parse and headword annotation is generated
+by a unique sequence of model actions.
+3
+Probabilistic Model
+The probability P(W, T ) can be broken into:
+P(W, T ) = Ql+1
+k=1[P(wk/Wk−1Tk−1)·
+QNk
+i=1 P(tk
+i /wk, Wk−1Tk−1, tk
+1 . . . tk
+i−1)] where:
+• Wk−1Tk−1 is the word-parse (k −1)-preﬁx
+• wk is the word predicted by PREDICTOR
+• Nk −1 is the number of adjoin operations the
+PARSER executes before passing control to the
+PREDICTOR (the Nk-th operation at position k is
+the null transition); Nk is a function of T
+<s>
+<s>
+T_{-m}
+h_{-1}
+h_0
+h_{-2}
+......... 
+h_{-1}
+h_0
+h_{-2}
+T_{-2}
+T_{-1}
+T_0
+......... 
+Figure 4: Before an adjoin operation
+...............
+T’_0
+T_{-1}
+T_0
+<s>
+T’_{-1}<-T_{-2}
+h_{-1}
+h_0
+h’_{-1} = h_{-2}
+h’_0 = h_{-1}
+T’_{-m+1}<-<s>
+Figure 5: Result of adjoin-left
+...............
+T’_{-1}<-T_{-2}
+T_0
+h_0
+h_{-1}
+<s>
+T’_{-m+1}<-<s>
+h’_{-1}=h_{-2}
+T_{-1}
+h’_0 = h_0
+Figure 6: Result of adjoin-right
+• tk
+i denotes the i-th PARSER operation carried
+out at position k in the word string;
+tk
+i ∈{adjoin-left,adjoin-right}, i < Nk ,
+tk
+i =null, i = Nk
+Our model is based on two probabilities:
+P(wk/Wk−1Tk−1)
+(1)
+P(tk
+i /wk, Wk−1Tk−1, tk
+1 . . . tk
+i−1)
+(2)
+As can be seen (wk, Wk−1Tk−1, tk
+1 . . . tk
+i−1) is one
+of the Nk word-parse k-preﬁxes of WkTk, i = 1, Nk
+at position k in the sentence.
+To ensure a proper probabilistic model we have
+to make sure that (1) and (2) are well deﬁned con-
+ditional probabilities and that the model halts with
+probability one. A few provisions need to be taken:
+• P(null/WkTk) = 1, if T_{-1} == <s> ensures
+that <s> is adjoined in the last step of the parsing
+process;
+• P(adjoin-right/WkTk) = 1, if h_0 == </s>
+ensures that the headword of a complete parse is
+</s>;
+•∃ǫ > 0s.t. P(wk=</s>/Wk−1Tk−1) ≥ǫ, ∀Wk−1Tk−1
+ensures that the model halts with probability one.
+3.1
+The ﬁrst model
+The ﬁrst term (1) can be reduced to an n-gram LM,
+P(wk/Wk−1Tk−1) = P(wk/wk−1 . . . wk−n+1).
+A simple alternative to this degenerate approach
+would be to build a model which predicts the next
+word based on the preceding p-1 exposed headwords
+and n-1 words in the history, thus making the fol-
+lowing equivalence classiﬁcation:
+[WkTk] = {h_0 .. h_{-p+2},wk−1..wk−n+1}.
+
+The approach is similar to the trigger LM(Lau93),
+the diﬀerence being that in the present work triggers
+are identiﬁed using the syntactic structure.
+3.2
+The second model
+Model (2) assigns probability to diﬀerent binary
+parses of the word k-preﬁx by chaining the ele-
+mentary operations described above. The workings
+of the PARSER are very similar to those of Spat-
+ter (Jelinek94). It can be brought to the full power
+of Spatter by changing the action of the adjoin
+operation so that it takes into account the termi-
+nal/nonterminal labels of the constituent proposed
+by adjoin and it also predicts the nonterminal la-
+bel of the newly created constituent; PREDICTOR
+will now predict the next word along with its POS
+tag. The best equivalence classiﬁcation of the WkTk
+word-parse k-preﬁx is yet to be determined.
+The
+Collins parser (Collins96) shows that dependency-
+grammar–like bigram constraints may be the most
+adequate, so the equivalence classiﬁcation [WkTk]
+should contain at least {h_0, h_{-1}}.
+4
+Preliminary Experiments
+Assuming that the correct partial parse is a func-
+tion of the word preﬁx, it makes sense to compare
+the word level perplexity(PP) of a standard n-gram
+LM with that of the P(wk/Wk−1Tk−1) model. We
+developed and evaluated four LMs:
+• 2 bigram LMs P(wk/Wk−1Tk−1) = P(wk/wk−1)
+referred to as W and w, respectively; wk−1 is the pre-
+vious (word, POStag) pair;
+• 2 P(wk/Wk−1Tk−1) = P(wk/h0) models, re-
+ferred to as H and h, respectively; h0 is the previous
+exposed (headword, POS/non-term tag) pair; the
+parses used in this model were those assigned man-
+ually in the Penn Treebank (Marcus95) after under-
+going headword percolation and binarization.
+All four LMs predict a word wk and they were
+implemented using the Maximum Entropy Model-
+ing Toolkit1 (Ristad97). The constraint templates
+in the {W,H} models were:
+4 <= <*>_<*> <?>; 2 <= <?>_<*> <?>;
+2 <= <?>_<?> <?>; 8 <= <*>_<?> <?>;
+and in the {w,h} models they were:
+4 <= <*>_<*> <?>; 2 <= <?>_<*> <?>;
+<*> denotes a don’t care position, <?>_<?> a (word,
+tag) pair; for example, 4 <= <?>_<*> <?> will trig-
+ger on all ((word, any tag), predicted-word) pairs
+that occur more than 3 times in the training data.
+The sentence boundary is not included in the PP cal-
+culation. Table 1 shows the PP results along with
+1ftp://ftp.cs.princeton.edu/pub/packages/memt
+the number of parameters for each of the 4 models
+described .
+LM
+PP
+param
+LM
+PP
+param
+W
+352
+208487
+w
+419
+103732
+H
+292
+206540
+h
+410
+102437
+Table 1: Perplexity results
+5
+Acknowledgements
+The author thanks to all the members of the De-
+pendency Modeling Group (Chelba97):David Engle,
+Frederick Jelinek, Victor Jimenez, Sanjeev Khudan-
+pur, Lidia Mangu, Harry Printz, Eric Ristad, Roni
+Rosenfeld, Andreas Stolcke, Dekai Wu.
+References
+[Collins96] Michael John Collins. 1996. A new sta-
+tistical parser based on bigram lexical dependen-
+cies. In Proceedings of the 34th Annual Meeting
+of the Association for Computational Linguistics,
+184-191, Santa Cruz, CA.
+[Jelinek97] Frederick Jelinek. 1997. Information ex-
+traction from speech and text — course notes. The
+Johns Hopkins University, Baltimore, MD.
+[Jelinek94] Frederick Jelinek, John Laﬀerty, David
+M.
+Magerman, Robert Mercer, Adwait Ratna-
+parkhi, Salim Roukos. 1994. Decision Tree Parsing
+using a Hidden Derivational Model. In Proceed-
+ings of the Human Language Technology Work-
+shop, 272-277. ARPA.
+[Lau93] Raymond Lau, Ronald Rosenfeld, and Salim
+Roukos. 1993. Trigger-based language models: a
+maximum entropy approach. In Proceedings of the
+IEEE Conference on Acoustics, Speech, and Sig-
+nal Processing, volume 2, 45-48, Minneapolis.
+[Marcus95] Mitchell P.
+Marcus, Beatrice Santorini,
+Mary Ann Marcinkiewicz. 1995. Building a large
+annotated corpus of English: the Penn Treebank.
+Computational Linguistics, 19(2):313-330.
+[Ristad97] Eric Sven Ristad. 1997. Maximum entropy
+modeling toolkit. Technical report, Department of
+Computer Science, Princeton University, Prince-
+ton, NJ, January 1997, v. 1.4 Beta.
+[Chelba97] Ciprian Chelba, David Engle, Freder-
+ick Jelinek, Victor Jimenez, Sanjeev Khudanpur,
+Lidia Mangu, Harry Printz, Eric Sven Ristad,
+Roni Rosenfeld, Andreas Stolcke, Dekai Wu. 1997.
+Structure and Performance of a Dependency Lan-
+guage Model. In Proceedings of Eurospeech’97,
+Rhodes, Greece. To appear.

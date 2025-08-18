@@ -1,0 +1,888 @@
+arXiv:cs/9907013v1  [cs.CL]  8 Jul 1999
+In Proceedings of the EACL workshop on Linguistically Interpreted Corpora (LINC), Bergen, Norway,
+June 1999
+Corpus Annotation for Parser Evaluation
+John Carroll, Guido Minnen
+Cognitive and Computing Sciences
+University of Sussex
+Brighton BN1 9QH, UK
+{johnca,guidomi}@cogs.susx.ac.uk
+Ted Briscoe
+Computer Laboratory
+University of Cambridge
+Pembroke Street, Cambridge CB2 3QG, UK
+ejb@cl.cam.ac.uk
+Abstract
+We describe a recently developed corpus
+annotation scheme for evaluating parsers
+that avoids shortcomings of current meth-
+ods. The scheme encodes grammatical re-
+lations between heads and dependents, and
+has been used to mark up a new public-
+domain corpus of naturally occurring En-
+glish text. We show how the corpus can be
+used to evaluate the accuracy of a robust
+parser, and relate the corpus to extant re-
+sources.
+1
+Introduction
+The evaluation of individual language-processing
+components forming part of larger-scale natural lan-
+guage processing (NLP) application systems has re-
+cently emerged as an important area of research (see
+e.g. Rubio, 1998; Gaizauskas, 1998).
+A syntactic
+parser is often a component of an NLP system; a re-
+liable technique for comparing and assessing the rel-
+ative strengths and weaknesses of diﬀerent parsers
+(or indeed of diﬀerent versions of the same parser
+during development) is therefore a necessity.
+Current methods for evaluating the accuracy of
+syntactic parsers are based on measuring the de-
+gree to which parser output replicates the analy-
+ses assigned to sentences in a manually annotated
+test corpus. Exact match between the parser output
+and the corpus is typically not required in order to
+allow diﬀerent parsers utilising diﬀerent grammati-
+cal frameworks to be compared. These methods are
+fully objective since the standards to be met and cri-
+teria for testing whether they have been met are set
+in advance.
+The evaluation technique that is currently the
+most widely-used was proposed by the Grammar
+Evaluation Interest Group (Harrison et al., 1991;
+see also Grishman, Macleod & Sterling, 1992), and
+is often known as ‘parseval’.
+The method com-
+pares phrase-structure bracketings produced by the
+parser with bracketings in the annotated corpus, or
+‘treebank’1 and computes the number of bracketing
+matches M with respect to the number of brack-
+etings P returned by the parser (expressed as pre-
+cision M/P) and with respect to the number C in
+the corpus (expressed as recall M/C), and the mean
+number of ‘crossing’ brackets per sentence where a
+bracketed sequence from the parser overlaps with
+one from the treebank and neither is properly con-
+tained in the other.
+Advantages of parseval are that a relatively un-
+detailed (only bracketed), treebank annotation is re-
+quired, some level of cross framework/system com-
+parison is achieved, and the measure is moderately
+ﬁne-grained and robust to annotation errors. How-
+ever, a number of disadvantages of parseval have
+been documented recently. In particular, Carpen-
+ter & Manning (1997) observe that sentences in the
+Penn Treebank (ptb; Marcus, Santorini & Marc-
+inkiewicz, 1993) contain relatively few brackets, so
+analyses are quite ‘ﬂat’.
+(The same goes for the
+other treebank of English in general use, susanne;
+Sampson, 1995). Thus crossing bracket scores are
+likely to be small, however good or bad the parser
+is. Carpenter & Manning also point out that with
+the adjunction structure the ptb gives to post noun-
+head modiﬁers (NP (NP the man) (PP with (NP a
+telescope))), there are zero crossings in cases where
+the VP attachment is incorrectly returned, and vice-
+versa.
+Conversely, Lin (1995) demonstrates that
+the crossing brackets measure can in some cases pe-
+nalise mis-attachments more than once; Lin (1996)
+argues that a high score for phrase boundary correct-
+ness does not guarantee that a reasonable semantic
+reading can be produced. Conversely, many phrase
+1Subsequent
+evaluations
+using
+parseval
+(e.g.
+Collins,
+1996) have adapted it to incorporate con-
+stituent labelling information as well as just bracketing.
+
+boundary disagreements stem from systematic dif-
+ferences between parsers/ grammars and corpus an-
+notation schemes that are well-justified within the
+context of their own theories.
+parseval does at-
+tempt to circumvent this problem by the removal
+from consideration of bracketing information in con-
+structions for which agreement between analysis
+schemes in practice is low: i.e. negation, auxiliaries,
+punctuation, traces, and the use of unary branching
+structures.
+However, in general there are still major prob-
+lems with compatibility between the annotations in
+treebanks and analyses returned by parsing systems
+using manually-developed generative grammars (as
+opposed to grammars acquired directly from the
+treebanks themselves).
+The treebanks have been
+constructed with reference to sets of informal guide-
+lines indicating the type of structures to be assigned.
+In the absence of a formal grammar controlling or
+verifying the manual annotations, the number of dif-
+ferent structural conﬁgurations tends to grow with-
+out check. For example, the ptb implicitly contains
+more than 10000 distinct context-free productions,
+the majority occurring only once (Charniak, 1996).
+This makes it very diﬃcult to accurately map the
+structures assigned by an independently-developed
+grammar/parser onto the structures that appear (or
+should appear) in the treebank.
+A further prob-
+lem is that the parseval bracket precision measure
+penalises parsers that return more structure than
+the treebank annotation, even if it is correct (Srini-
+vas, Doran & Kulick, 1995). To be able to use the
+treebank and report meaningful parseval precision
+scores such parsers must necessarily ‘dumb down’
+their output and attempt to map it onto (exactly)
+the distinctions made in the treebank2. This map-
+ping is also very diﬃcult to specify accurately. par-
+seval evaluation is thus objective, but the results
+are not reliable.
+In addition, since parseval is based on measuring
+similarity between phrase-structure trees, it cannot
+be applied to grammars which produce dependency-
+style analyses, or to ‘lexical’ parsing frameworks
+such as ﬁnite-state constraint parsers which assign
+syntactic functional labels to words rather than pro-
+ducing hierarchical structure.
+To overcome the parseval grammar/treebank
+mismatch problems outlined above, Lin (1995) pro-
+poses evaluation based on dependency structure, in
+which phrase structure analyses from parser and
+treebank are both automatically converted into sets
+2Gaizauskas, Hepple & Huyck (1998) propose an al-
+ternative to the parseval precision measure to address
+this speciﬁc shortcoming.
+of dependency relationships.
+Each such relation-
+ship consists of a modiﬁer, a modiﬁee, and option-
+ally a label which gives the type of the relation-
+ship.
+Atwell (1996), though, argues that trans-
+forming standard constituency-based analyses into a
+dependency-based representation would lose certain
+kinds of grammatical information that might be im-
+portant for subsequent processing, such as ‘logical’
+information (e.g. location of traces, or moved con-
+stituents). Srinivas, Doran, Hockey & Joshi (1996)
+describe a related technique which could also be ap-
+plied to partial (incomplete) parses, in which hierar-
+chical phrasal constituents are ﬂattened into chunks
+and the relationships between them are indicated by
+dependency links. Recall and precision are deﬁned
+over dependency links.
+The TSNLP (Lehmann et al., 1996) project test
+suites (in English, French and German) contain
+dependency-based annotations for some sentences;
+this allows for “generalizations over potentially con-
+troversial phrase structure conﬁgurations” and also
+mapping onto a speciﬁc constituent structure. No
+speciﬁc annotation standards or evaluation measures
+are proposed, though.
+2
+Grammatical Relation Annotation
+In the previous section we argued that constituency-
+based evaluation for parser evaluation has serious
+shortcomings3. In this section we outline a recently-
+proposed annotation scheme based on a dependency-
+style analysis, and compare it to other related
+schemes.
+In the next section we describe a 10K-
+word test corpus that uses this scheme, and also how
+it may be used to evaluate a robust parser.
+Carroll, Briscoe & Sanﬁlippo (1998) describe an
+annotation scheme in which each sentence in the
+corpus is marked up with a set of grammatical re-
+lations (GRs), specifying the syntactic dependency
+which holds between each head and its dependent(s).
+The annotation scheme is application-independent,
+and takes into account language phenomena in
+English,
+Italian,
+French
+and
+German.
+The
+scheme is based on EAGLES lexicon/syntax work-
+ing group standards (Sanﬁlippo et al., 1996), but
+reﬁned within the EU 4th Framework SPARKLE
+project (see <http://www.ilc.pi.cnr.it/sparkle/wp1-
+preﬁnal>) extending the set of relations proposed
+there.
+3Note that the issue we are concerned with here is
+parser evaluation, and we are not making any more gen-
+eral claims about the utility of constituency-based tree-
+banks for other tasks, such as statistical parser training
+or in quantitative linguistics.
+
+✏
+✏
+✏
+✏
+✏
+PPPPP
+◗◗◗
+✑
+✑
+✑
+❍❍❍
+✦
+✦
+✦
+✦
+❍❍❍
+✟
+✟
+✟
+❩❩❩❩❩❩
+✁
+✁
+✟
+✟
+✟
+✟
+✟
+✟
+✟
+✟
+✆
+✆
+✆
+✆
+✆
+✆
+✭
+✭
+✭
+✭
+✭
+✭
+✭
+❛❛❛❛
+✦
+✦
+✦
+✦
+❳❳❳❳❳❳
+✘
+✘
+✘
+✘
+✘
+✘
+dependent
+mod
+arg mod
+arg
+subj or dobj
+ncmod
+xmod
+cmod
+subj
+comp
+ncsubj xsubj csubj
+obj
+clausal
+dobj
+obj2
+iobj
+xcomp
+ccomp
+Figure 2: The GR hierarchy.
+When the proprietor dies, the establishment should
+become a corporation until it is either acquired by
+another proprietor or the government decides to
+drop it.
+cmod(when, become, die)
+ncsubj(die, proprietor, )
+ncsubj(become, establishment, )
+xcomp(become, corporation, )
+mod(until, become, acquire)
+ncsubj(acquire, it, obj)
+arg mod(by, acquire, proprietor, subj)
+cmod(until, become, decide)
+ncsubj(decide, government, )
+xcomp(to, decide, drop)
+ncsubj(drop, government, )
+dobj(drop, it, )
+Figure 1: Example sentence and GRs (susanne rel3,
+lines G22:1460k–G22:1480m).
+For brevity, we give an example of the use of
+the GR scheme here (ﬁgure 1) rather than duplicat-
+ing Carroll, Briscoe & Sanﬁlippo’s description of it.
+The set of possible relations (i.e. cmod, ncsubj, etc.)
+is organised hierarchically; see ﬁgure 2. The most
+generic relation between a head and a dependent
+is dependent. Where the relationship between the
+two is known more precisely, relations further down
+the hierarchy can be used, for example mod(iﬁer)
+or arg(ument).
+Relations mod, arg mod, clausal,
+and their descendants have slots ﬁlled by a type, a
+head, and its dependent; arg mod has an additional
+fourth slot initial gr. Descendants of subj, and also
+dobj have the three slots head, dependent, and ini-
+tial gr. The x and c preﬁxes to relation names dif-
+ferentiate clausal control alternatives.
+The scheme is superﬁcially similar to a syntactic
+dependency analysis in the style of Lin (1995). How-
+ever, the scheme contains a speciﬁc, ﬁxed inventory
+of relations. Other signiﬁcant diﬀerences are:
+• the GR analysis of control relations could not be
+expressed as a strict dependency tree since a sin-
+gle nominal head would be a dependent of two
+(or more) verbal heads (as with ncsubj(decide,
+government,
+) ncsubj(drop, government,
+) in
+the ﬁgure 1 example ...the government decides
+to drop it);
+• any complementiser or preposition linking a
+head with a clausal or PP dependent is an inte-
+gral part of the GR (the type slot);
+• the underlying grammatical relation is speciﬁed
+for arguments “displaced” from their canonical
+positions by movement phenomena (e.g. the ini-
+tial gr slot of ncsubj and arg mod in the passive
+...it is either acquired by another proprietor...);
+• semantic arguments syntactically realised as
+modiﬁers (e.g. the passive by-phrase) are indi-
+cated as such—using arg mod;
+• conjuncts in a co-ordination structure are dis-
+tributed over the higher-level relation (e.g. in
+...become ... until ... either acquired ... or ...
+decides...
+there are two verbal dependents of
+become, acquire and decide, each in a separate
+mod GR;
+• arguments which are not lexically realised can
+be expressed (e.g. when there is pro-drop the
+dependent in a subj GR would be speciﬁed as
+Pro);
+
+• GRs are organised into a hierarchy so that they
+can be left underspeciﬁed by a shallow parser
+which has incomplete knowledge of syntax.
+In addition to constituent structure,
+both the
+ptb and susanne contain functional, or predicate-
+argument annotation, the former particularly em-
+ploying a rich set of distinctions, often with complex
+grammatical and contextual conditions on when one
+function tag should be applied in preference to an-
+other. For example, the tag TPC (“topicalized”)
+“— marks elements that appear before the
+subject in a declarative sentence, but in
+two cases only: (i) if the fronted element
+is associated with a *T* in the position of
+the gap. (ii) if the fronted element is left-
+dislocated [...]”
+(Bies et al., 1995: 40). Conditions of this type would
+be very diﬃcult to encode in an actual parser, so
+attempting to evaluate on them would be uninfor-
+mative. Much of the problem is that treebanks of
+this kind have to specify the behaviour of many in-
+teracting factors, such as how syntactic constituents
+should be segmented, labelled and structured hi-
+erarchically, how displaced elements should be co-
+indexed, and so on. Within such a framework the
+further speciﬁcation of how functional tags should be
+attached to constituents is necessarily highly com-
+plex. Moreover, functional information is in some
+cases left implicit4, presenting further problems for
+precise evaluation. Table 1 gives a rough comparison
+between the types of information in the GR scheme
+and in the ptb and susanne.
+It might be possi-
+ble semi-automatically to map a treebank predicate-
+argument encoding to the GR scheme (taking advan-
+tage of the large amount of work that has gone into
+the treebanks), but we have not investigated this to
+date.
+3
+The Annotated Corpus and
+Evaluation
+3.1
+Corpus Annotation
+Our corpus consists of 500 sentences (10K words)
+covering a number of written genres. The sentences
+were taken from the susanne corpus, and each was
+marked up manually by two annotators5.
+The manual analysis was performed by the ﬁrst
+author and was checked and extended by the third
+4“The predicate is the lowest (right-most branching)
+VP or (after copula verbs and in ‘small clauses’) a con-
+stituent tagged PRD” (Bies et al., 1995: 11).
+5The corpus and evaluation software that can be used
+with it will shortly be made publicly available online.
+Relation
+ptb
+susanne
+dependent
+–
+–
+mod
+TPC/ADV etc.
+p etc.
+ncmod
+CLR/VOC/ADV etc.
+n/p etc.
+xmod
+cmod
+arg mod
+LGS
+a
+arg
+–
+–
+subj
+–
+–
+ncsubj
+SBJ
+s
+xsubj
+csubj
+subj or dobj
+–
+–
+comp
+–
+–
+obj
+–
+–
+dobj
+(NP after V)
+o
+obj2
+(2nd NP after V)
+iobj
+CLR/DTV
+i
+clausal
+PRD
+–
+xcomp
+e
+ccomp
+j
+Table 1:
+Rough correspondence between the GR
+scheme and the functional annotation in the Penn
+Treebank (ptb) and susanne.
+author. Inter-annotator agreement was around 95%
+which is somewhat better than previously reported
+ﬁgures for syntactic markup (e.g. Leech and Garside,
+1991). Marking up was done semi-automatically by
+ﬁrst generating the set of relations predicted by the
+evaluation software from the closest system analy-
+sis to the treebank annotation and then manually
+correcting and extending these.
+The mean number of GRs per corpus sentence is
+9.72. Table 2 quantiﬁes the distribution of relations
+occurring in the corpus. The split between modiﬁers
+and arguments is roughly 60/40, with approximately
+equal numbers of subjects and complements. Of the
+latter, 40% are clausal; clausal modiﬁers are almost
+as prevalent. In strong contrast, clausal subjects are
+highly infrequent (accounting for only 0.2% of the
+total). Direct objects are 2.75 times more frequent
+than indirect objects, which are themselves 7.5 times
+more prevalent than second objects.
+The corpus contains sentences belonging to three
+distinct genres. These are classiﬁed in the original
+Brown corpus as: A, press reportage; G, belles let-
+tres; and J, learned writing. Genre has been found
+to aﬀect the distribution of surface-level syntactic
+conﬁgurations (Sekine, 1997) and also complement
+types for individual predicates (Roland & Jurafsky,
+1998). However, we observe no statistically signif-
+
+Relation
+# occurrences
+% occurrences
+dependent
+4690
+100.0
+mod
+2710
+57.8
+ncmod
+2377
+50.7
+xmod
+170
+3.6
+cmod
+163
+3.5
+arg mod
+39
+0.8
+arg
+1941
+41.4
+subj
+993
+21.2
+ncsubj
+984
+21.0
+xsubj
+5
+0.1
+csubj
+4
+0.1
+subj or dobj
+1339
+28.6
+comp
+948
+20.2
+obj
+559
+11.9
+dobj
+396
+8.4
+obj2
+19
+0.4
+iobj
+144
+3.1
+clausal
+389
+8.3
+xcomp
+323
+6.9
+ccomp
+66
+1.4
+Table 2: Frequency of each type of GR (inclusive of
+subsumed relations) in the 10K-word corpus.
+icant diﬀerence in the total numbers of the various
+grammatical relations across the three genres in the
+corpus.
+3.2
+Parser Evaluation
+We replicated an experiment previously reported by
+Carroll, Minnen & Briscoe (1998), using a robust
+lexicalised parser, computing three evaluation mea-
+sures for each type of relation against the 10K-word
+test corpus (table 3). The evaluation measures are
+precision, recall, and F-score (van Rijsbergen, 1979)6
+of parser GRs against the test corpus annotation.
+GRs are in general compared using an equality
+test, except that we allowed the parser to return
+mod, subj and clausal relations rather than the more
+speciﬁc ones they subsume, and to leave unspeci-
+ﬁed the ﬁller for the type slot in the mod, iobj and
+clausal relations7.
+The head and dependent slot
+ﬁllers are in all cases the base forms of single head
+words, so for example, ‘multi-component’ heads such
+as the names of people and companies are reduced
+to a single word; thus the slot ﬁller corresponding to
+6The F-score is a measure combining precision and
+recall into a single ﬁgure. We use the version in which
+they are weighted equally, deﬁned as 2 × precision ×
+recall/(precision + recall).
+7The implementation of the extraction of GRs from
+parse trees is currently being reﬁned, so these minor re-
+laxations should be removed soon.
+Relation
+Precision
+Recall
+F-score
+(%)
+(%)
+dependent
+75.1
+75.2
+75.1
+mod
+73.7
+69.7
+71.7
+ncmod
+78.1
+73.1
+75.6
+xmod
+70.0
+51.9
+59.6
+cmod
+67.4
+48.1
+56.1
+arg mod
+84.2
+41.0
+55.2
+arg
+76.6
+83.5
+79.9
+subj
+83.6
+87.9
+85.7
+ncsubj
+84.8
+88.3
+86.5
+xsubj
+100.0
+40.0
+57.1
+csubj
+14.3
+100.0
+25.0
+subj or dobj
+84.4
+86.9
+85.6
+comp
+69.8
+78.9
+74.1
+obj
+67.7
+79.3
+73.0
+dobj
+86.3
+84.3
+85.3
+obj2
+39.0
+84.2
+53.3
+iobj
+41.7
+64.6
+50.7
+clausal
+73.0
+78.4
+75.6
+xcomp
+84.4
+78.9
+81.5
+ccomp
+72.3
+74.6
+73.4
+Table 3: GR accuracy by relation.
+Bill Clinton would be Clinton. For real-world appli-
+cations this might not be the desired behaviour—one
+might instead want the token Bill Clinton—but the
+analyser could easily be modiﬁed to do this.
+The evaluation results can be used to give a single
+ﬁgure for parser accuracy—the F-score of the depen-
+dent relation—precision and recall at the most gen-
+eral level, or more ﬁne-grained information about
+how accurately groups of, or single relations were
+produced.
+The latter would be particularly use-
+ful during parser/ grammar development to identify
+where eﬀort should be expended on making improve-
+ments.
+4
+Conclusions
+We
+have
+outlined
+and
+justiﬁed
+a
+language
+and
+application-independent
+corpus
+annota-
+tion
+scheme
+for
+evaluating
+syntactic
+parsers,
+based on grammatical relations between heads
+and dependents.
+The scheme has been used
+in
+the
+EU-funded
+SPARKLE
+project
+(see
+<http://www.ilc.pi.cnr.it/sparkle.html>) to anno-
+tate English, French, German and Italian corpora,
+and for evaluating parsers for these languages. In
+this paper we have described a 10K-word corpus
+of English marked up to this standard, and shown
+its use in evaluating a robust parsing system. The
+corpus and evaluation software that can be used
+
+with it will shortly be made publicly available
+online.
+Acknowledgments
+This work was funded by UK EPSRC project
+GR/L53175 ‘PSET: Practical Simpliﬁcation of En-
+glish Text’,
+CEC Telematics Applications Pro-
+gramme project LE1-2111 ‘SPARKLE: Shallow
+PARsing and Knowledge extraction for Language
+Engineering’, and by an EPSRC Advanced Fellow-
+ship to the ﬁrst author.
+We would like to thank
+Antonio Sanﬁlippo for his substantial input to the
+design of the annotation scheme.
+References
+Atwell, E. (1996) Comparative evaluation of gram-
+matical annotation models. In R. Sutcliﬀe, H.
+Koch & A. McElligott (Eds.), Industrial Pars-
+ing of Software Manuals, 25–46.
+Amsterdam:
+Rodopi.
+Bies, A., Ferguson, M., Katz, K., MacIntyre, R.,
+Tredinnick, V., Kim, G., Marcinkiewicz, M.,
+Schasberger, B. (1995) Bracketing guidelines for
+Treebank II style Penn Treebank Project. Tech-
+nical Report, CIS, University of Pennsylvania,
+Philadelphia, PA.
+Carpenter, B. & Manning, C. (1997) Probabilistic
+parsing using left corner language models.
+In
+Proceedings of the 5th ACL/SIGPARSE Interna-
+tional Workshop on Parsing Technologies. MIT,
+Cambridge, MA.
+Carroll, J., Briscoe E. & Sanﬁlippo, A. (1998)
+Parser evaluation: a survey and a new proposal.
+In
+Proceedings
+of
+the International
+Confer-
+ence on Language Resources and Evaluation,
+447–454. Granada, Spain. Available online at
+<ftp://ftp.cogs.susx.ac.uk/pub/users/johnca/
+lre98-ﬁnal.ps>.
+Carroll,
+J.,
+Minnen,
+G. & Briscoe E. (1998)
+Can subcategorisation probabilities help a sta-
+tistical parser?.
+In Proceedings of the 6th
+ACL/SIGDAT Workshop on Very Large Cor-
+pora.
+Montreal, Canada.
+Available online at
+<http://xxx.lanl.gov/abs/cmp-lg/9806013>.
+Charniak, E. (1996) Tree-bank grammars. In Pro-
+ceedings of the 13th National Conference on Ar-
+tiﬁcial Intelligence, AAAI-96, 1031–1036. .
+Collins, M. (1996) A new statistical parser based on
+bigram lexical dependencies. In Proceedings of
+the 34th Meeting of the Association for Compu-
+tational Linguistics, 184–191. Santa Cruz, CA.
+Gaizauskas, R. (1998) Special issue on evaluation.
+Computer Speech & Language.
+Gaizauskas, R., Hepple M. & Huyck, C. (1998)
+Modifying existing annotated corpora for gen-
+eral comparative evaluation of parsing. In Pro-
+ceedings of the LRE Workshop on Evaluation of
+Parsing Systems. Granada, Spain.
+Grishman, R., Macleod, C. & Sterling, J. (1992)
+Evaluating parsing strategies using standardized
+parse ﬁles. In Proceedings of the 3rd ACL Con-
+ference on Applied Natural Language Processing,
+156–161. Trento, Italy.
+Harrison, P., Abney, S., Black, E., Flickinger, D.,
+Gdaniec, C., Grishman, R., Hindle, D., In-
+gria, B., Marcus, M., Santorini, B. & Strza-
+lkowski, T. (1991) Evaluating syntax perfor-
+mance of parser/grammars of English. In Pro-
+ceedings of the Workshop on Evaluating Natural
+Language Processing Systems. ACL.
+Leech, G. & Garside, R. (1991) Running a grammar
+factory:
+the production of syntactically anal-
+ysed corpora or ‘treebanks’.
+In S. Johansson
+& A. Stenstrom (Eds.), English Computer Cor-
+pora: Selected Papers and Bibliography, Mouton
+de Gruyter, Berlin.
+Lehmann, S., Oepen, S., Regnier-Prost, S., Net-
+ter, K., Lux, V., Klein, J., Falkedal, K., Fou-
+vry, F., Estival, D., Dauphin, E., Compagnion,
+H., Baur, J., Balkan, L. & Arnold, D. (1996)
+tsnlp — test suites for natural language pro-
+cessing. In Proceedings of the International Con-
+ference on Computational Linguistics, COLING-
+96, 711–716. Copenhagen, Denmark.
+Lin, D. (1995) A dependency-based method for
+evaluating broad-coverage parsers. In Proceed-
+ings of the 14th International Joint Conference
+on Artiﬁcial Intelligence, 1420–1425. Montreal,
+Canada.
+Lin, D. (1996) Dependency-based parser evaluation:
+a study with a software manual corpus. In R.
+Sutcliﬀe, H-D. Koch & A. McElligott (Eds.),
+Industrial Parsing of Software Manuals, 13–24.
+Amsterdam, The Netherlands: Rodopi.
+Marcus, M., Santorini, B. & Marcinkiewicz (1993)
+Building a large annotated corpus of English:
+The Penn Treebank. Computational Linguistics,
+19(2), 313–330.
+Roland, D. & Jurafsky, D. (1998) How verb sub-
+categorization frequencies are aﬀected by cor-
+pus choice.
+In Proceedings of the 17th Inter-
+national Conference on Computational Linguis-
+tics (COLING-ACL’98), 1122–1128. Montreal,
+Canada.
+Rubio, A. (Ed.) (1998) International Conference on
+Language Resources and Evaluation. Granada,
+
+Spain.
+Sampson, G. (1995) English for the Computer. Ox-
+ford, UK: Oxford University Press.
+Sanﬁlippo, A., Barnett, R., Calzolari, N., Flores,
+S., Hellwig, P., Leech, P., Melero, M., Mon-
+temagni, S., Odijk, J., Pirrelli, V., Teufel, S.,
+Villegas M. & Zaysser, L. (1996) Subcategoriza-
+tion Standards.
+Report of the EAGLES Lexi-
+con/Syntax Interest Group. Available through
+eagles@ilc.pi.cnr.it.
+Sekine, S. (1997) The domain dependence of pars-
+ing. In Proceedings of the 5th ACL Conference
+on Applied Natural Language Processing, 96–102.
+Washington, DC.
+Srinivas, B., Doran, C., Hockey B. & Joshi A. (1996)
+An approach to robust partial parsing and eval-
+uation metrics. In Proceedings of the ESSLLI’96
+Workshop on Robust Parsing. Prague, Czech Re-
+public.
+Srinivas, B., Doran, C. & Kulick, S. (1995) Heuris-
+tics and parse ranking.
+In Proceedings of the
+4th ACL/SIGPARSE International Workshop
+on Parsing Technologies. Prague, Czech Repub-
+lic.
+van Rijsbergen, C. (1979) Information Retrieval.
+Butterworth, London.

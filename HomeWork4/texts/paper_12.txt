@@ -1,0 +1,887 @@
+arXiv:cs/9809113v1  [cs.CL]  28 Sep 1998
+Improving Tagging Accuracy by Using Voting Taggers
+Llu´ıs M`arquez, Llu´ıs Padr´o and Horacio Rodr´ıguez
+Dep. LSI. Technical University of Catalonia
+c/ Jordi Girona 1-3. 08034 Barcelona
+{lluism,padro,horacio}@lsi.upc.es
+Abstract
+We present a bootstrapping method to de-
+velop an annotated corpus, which is spe-
+cially useful for languages with few avail-
+able resources. The method is being ap-
+plied to develop a corpus of Spanish of
+over 5Mw.
+The method consists on tak-
+ing advantage of the collaboration of two
+diﬀerent POS taggers. The cases in which
+both taggers agree present a higher accu-
+racy and are used to retrain the taggers.
+Keywords: POS tagging, Corpus Anno-
+tation, Bootstrapping techniques
+1
+Introduction
+Usual automatic tagging algorithms involve a pro-
+cess of acquisition (or learning) of a statistical lan-
+guage model from a previously tagged training cor-
+pus (supervised learning).
+The statistical models
+contain lots of parameters that have to be reliably
+estimated from the corpus, so the sparseness of the
+training data is a severe problem.
+When a new annotated corpus for a language with
+a reduced amount of available linguistic resources is
+developed, this issue becomes even more important,
+since no training corpora are available and the man-
+ual tagging of a big enough training corpus is very
+expensive, both in time and human labour. If costly
+human labour is to be avoided, the accuracy of au-
+tomatic systems has to be as high as possible, even
+starting with relatively small manually tagged train-
+ing sets.
+In the case of English, existing resources are usu-
+ally enough, thus existing work on developing cor-
+pora does not rely much in bootstrapping, although
+re–estimation procedures are widely used to improve
+tagger accuracies, specially when limited disam-
+biguated material is available (Church, 1988; Briscoe
+et al., 1994; Elworthy, 1994). We ﬁnd automatically
+tagged corpora which are hand corrected a posteri-
+ori (Marcus et al., 1993), and fully automatic disam-
+biguation procedures (Leech et al., 1994; J¨arvinen,
+1994)
+Bootstrapping is one of the methods that can
+be used to improve the performance of statistical
+taggers when only small training sets are available.
+The bootstrapping procedure starts by using a small
+hand-tagged portion of the corpus as an initial train-
+ing set. Then, the tagger is used to disambiguate fur-
+ther material, which is incorporated to the training
+set and used to retrain the tagger. Since the retrain-
+ing corpus can be much larger than the initial train-
+ing corpus we expect to better estimate (or learn)
+the statistical parameters of the tagging model and
+to obtain a more accurate tagger. Of course, this
+procedure can be iterated leading, hopefully, to pro-
+gressively better language models and more precise
+taggers. The procedure ends when no more improve-
+ment is achieved.
+As stated above, the bootstrapping reﬁning pro-
+cess is completely automatic. However each step of
+training corpus enlargement and enrichment could
+involve a certain amount of manual revision and
+correction. In this way the process would be semi–
+automatic.
+The main problem of this approach is that the
+retraining material contains errors (because it has
+been tagged with a still poor tagger) and that this in-
+troduced noise could be very harmful for the learning
+procedure of the tagger. Depending on the amount
+of noise and on the robustness of the tagging algo-
+rithm, the reﬁning iteration could lead to no im-
+provement or even to a degradation of the perfor-
+mance of the initial tagger.
+Recent studies (Padr´o and M`arquez, 1998) point
+that the noise in training and test corpora are crucial
+not only for the right evaluation of an NLP system,
+but also for its appropriate training to get an op-
+timal performance. So, keeping a low error rate in
+
+retraining material becomes an essential point if we
+want to guarantee the validity of the bootstrapping
+approach.
+In this paper we show that it is possible to take ad-
+vantage of the collaboration between two (or more)
+diﬀerent taggers in a bootstrapping process, by ob-
+serving that in the cases in which both taggers pro-
+pose the same tag present a much higher precision
+than any of them separately and that these coinci-
+dence cases represent a coverage of more than 95%.
+Then, the corpus to retrain the taggers is built, at
+each step, on the basis of this intersection corpus,
+keeping fairly low error rates and leading to better
+language models and more precise taggers.
+In addition, it is clear that the combination of tag-
+gers can be used to get a high recall tagger, which
+proposes an unique tag for most words and two tags
+when both taggers disagree. Depending on the user
+needs, it might be worthwhile accepting a higher re-
+maining ambiguity in favour of a higher recall.
+The paper will be organized as follows: In sec-
+tion 2 we will propose a bootstrapping procedure
+that combines the information of two taggers.
+In
+section 3 we will describe the corpus used in the
+experiments, as well as the used analyzers, the ini-
+tial training set development and the initial results.
+Section 4 is devoted to describe the diﬀerent experi-
+ments performed to ﬁnd out the best way to combine
+the progressively obtained training corpora, and ﬁ-
+nally, in section 5, the best choice is presented and its
+results are reported. Preliminary work on extending
+the procedure to three voting taggers is discussed.
+2
+Bootstrapping algorithm
+The proposed bootstrapping algorithm is described
+in detail in ﬁgure 1. The meaning of the involved
+notation is described below:
+• Ci stands for the retraining corpus of i-th iter-
+ation.
+In particular, C0 stands for the initial
+hand–tagged training corpus.
+• T stands for a hand–tagged test corpus used
+to estimate the performance of the subsequent
+taggers.
+• N stands for the fresh part of the raw corpus
+used at each step to enlarge the training set.
+For simplicity we consider it independent of the
+speciﬁc iteration.
+• A1 and A2 stand for both taggers (including,
+indistinctly, the model acquisition and disam-
+biguation algorithms).
+• M j
+i stands for the j-th language model obtained
+by i-th tagger.
+• train(Ai, Cj) stands for the procedure of train-
+ing the i-th tagger with the j-th training corpus.
+The result is the language model M j
+i .
+• test(T , A1, M i
+1, A2, M i
+2) stands for a general
+procedure that returns the best accuracy ob-
+tained by any of the two taggers on the test set.
+• tag(N, Ai, M j
+i ) stands for the procedure of tag-
+ging the raw corpus N with the i-th tagger using
+the j-th language model, producing N i
+j .
+• combine(C0, N i
+1 ∩N i
+2) is the general procedure
+of creation of (i+1)-th training corpus.
+This
+is done by adding to the hand disambiguated
+corpus C0 the cases in N in which both taggers
+coincide in their predictions (noted N i
+1 ∩N i
+2).
+### Train taggers using manual corpus
+M 0
+1 := train(A1, C0);
+M 0
+2 := train(A2, C0);
+### Compute achieved accuracy
+Acc-current := test(T , A1, M 0
+1 , A2, M 0
+2 );
+Acc-previous := 0;
+### Initialize iteration counter
+i := 0;
+while (Acc-current signiﬁcantly–better Acc-previous) do
+N := fresh–part–of–the–raw–corpus;
+### Tag the new data
+N i
+1 := tag(N, A1, M i
+1);
+N i
+2 := tag(N, A2, M i
+2);
+### Add the coincidence cases to
+### the manual training corpus
+Ci+1 := combine(C0, N i
+1 ∩N i
+2);
+### retrain the taggers
+M i+1
+1
+:= train(A1, Ci+1);
+M i+1
+2
+:= train(A2, Ci+1);
+### Prepare next iteration
+Acc-previous := Acc-current;
+Acc-current := test(T , A1, M i+1
+1
+, A2, M i+1
+2
+)
+end-while
+Figure 1: Bootstrapping algorithm using two taggers
+In section 4 we study the proper tuning of the al-
+gorithm in our particular domain by exploring the
+right size of the retrain corpus (i.e: the size of N),
+the combination procedure (in particular we explore
+if a weighted combination is preferable to the sim-
+ple addition) and the number of iterations that are
+useful. Additionally, we have tested if the (relatively
+
+cheap) process of hand–correcting the disagreement
+cases between the two taggers at each step can give
+additional performance improvements.
+3
+Tagging the LexEsp Corpus
+The LexEsp Project is a multi–disciplinary eﬀort
+impulsed by the Psychology Department from the
+University of Oviedo.
+It aims to create a large
+database of language usage in order to enable and
+encourage research activities in a wide range of
+ﬁelds, from linguistics to medicine, through psychol-
+ogy and artiﬁcial intelligence, among others.
+One of the main issues of that database of linguis-
+tic resources is the LexEsp corpus, which contains
+5.5 Mw of written material, including general news,
+sports news, literature, scientiﬁc articles, etc.
+The corpus will be morphologically analyzed and
+disambiguated as well as syntactically parsed. The
+used tagset is PAROLE compliant, and consists of
+some 230 tags1 fully expanded (using all information
+about gender, number, person, tense, etc.)
+which
+can be reduced to 62 tags when only category and
+subcategory are considered.
+The corpus has been morphologically analyzed
+with the maco+ system, a fast, broad–coverage an-
+alyzer (Carmona et al., 1998). The percentage of
+ambiguous words is 39.26% and the average ambigu-
+ity ratio is 2.63 tags/word for the ambiguous words
+(1.64 overall). The output produced by maco+, is
+used as the input for two diﬀerent POS taggers:
+• Relax (Padr´o, 1996).
+A relaxation–labelling
+based tagger which is able to incorporate infor-
+mation of diﬀerent sources in a common lan-
+guage of weighted context constraints.
+• TreeTagger (M`arquez and Rodr´ıguez, 1997).
+A
+decision–tree
+based
+tagger
+that
+uses
+a
+machine–learning
+supervised
+algorithm
+for
+learning a base of statistical decision trees and
+an iterative disambiguation algorithm that ap-
+plies these trees and ﬁlters out low probability
+tags.
+Since both taggers require training data, 96 Kw
+were hand disambiguated2 to get an initial training
+set (C0) of 71 Kw and a test set (T ) of 25 Kw.
+The training set was used to extract bigram and
+trigram statistics and to learn decision trees with
+1There are potentially many more possible tags, but
+they do not actually occur.
+2A trained human annotator can reach a rate of 2000
+words per hour, using a specially designed Tcl/Tk graph-
+ical interface. So, 100Kw can be annotated in about 50
+man hours.
+TreeTagger.
+The taggers also require lexical
+probabilities, which were computed from the oc-
+currences in the training corpus –applying smooth-
+ing (Laplace correction) to avoid zero probabilities–.
+For the words not appearing in the training set, the
+probability distribution for their ambiguity class was
+used. For unseen ambiguity classes, unigram proba-
+bilities were used.
+Initial experiments consisted of evaluating the pre-
+cision of both taggers when trained on the above
+conditions. Table 1 shows the results produced by
+each tagger. The diﬀerent kinds of information used
+by the relaxation labelling tagger are coded as fol-
+lows: B stands for bigrams, T for trigrams and BT
+for the joint set. A baseline result produced by a
+most–frequent–tag tagger (Mft) is also reported.
+Tagger Model
+Ambiguous
+Overall
+Mft
+88.9%
+95.8%
+TreeTagger
+92.1%
+97.0%
+Relax (B)
+92.9%
+97.3%
+Relax (T)
+92.7%
+97.2%
+Relax (BT)
+93.1%
+97.4%
+Table 1: Results of diﬀerent taggers using the C0
+training set
+These results point out that a 71 Kw training set
+manually disambiguated provides enough evidence
+to allow the tagger to get quite good results. Nev-
+ertheless, it is interesting to notice that the trigram
+model has lower accuracy than the bigram model.
+This is caused by the size of the training corpus, too
+small to estimate a good trigram model.
+4
+Improving Tagging Accuracy by
+Combining Taggers
+In order to improve the model obtained from the
+initial hand tagged training corpus, we may try a
+re–estimation procedure. The most straightforward
+–and usual– way of doing so is using a single tag-
+ger to disambiguate a fresh part of the corpus, and
+then use those data as a new training set. We will
+introduce the joint use of two taggers as a way to
+reduce the error rate introduced by the single tagger
+by selecting as retraining material only those cases in
+which both taggers coincide. Two properties must
+hold for this method to work: 1) the accuracy in
+the cases of coincidence should be higher than those
+of both taggers individually considered, and 2) the
+taggers should coincide in the majority of the cases
+(high coverage).
+For instance, using a ﬁrst set of 200Kw and given
+that both taggers agree in 97.5% of the cases and
+
+that 98.4% of those cases are correctly tagged, we get
+a new corpus of 195Kw with an error rate of 1.6%.
+If we add the manually tagged 70Kw (assumed error
+free) from the initial training corpus we get a 265Kw
+corpus with an 1.2% error rate.
+4.1
+Size of the Retraining Corpus
+First of all, we need to establish which is the right
+size for the fresh part of the corpus to be used as re-
+training data. We have 5.4Mw of raw data available
+to do so, but note that the bigger the corpus is, the
+higher the error rate in the retraining corpus will be
+–because of the increasing proportion of new noisy
+corpus with respect to the initial error free training
+corpus–.
+So we will try to establish which is the corpus size
+at which further enlargements of the retraining cor-
+pus don’t provide signiﬁcant improvements. Results
+for each tagger when retrained with diﬀerent corpus
+sizes are shown in ﬁgure 2 (accuracy ﬁgures are given
+over ambiguous words only). The size at which both
+taggers produce their best result is that of 800 Kw
+(namely C1
+800), reaching 93.4% and 93.9% accuracy
+on ambiguous words.
+92.5
+93
+93.5
+94
+94.5
+0
+200
+400
+600
+800
+1000
+#words (x1000)
+%acc.
+TreeTagger
+Relax
+Figure 2: Results using retraining sets of increasing sizes
+The accuracies in ﬁgure 2 are computed retraining
+the taggers with the coincidence cases in the retrain
+corpus, as described in section 2.
+4.2
+Two taggers better than one
+Once we have chosen a size for the retraining corpus,
+we will check whether the joint use of two taggers to
+reduce the error in the training corpus is actually
+better than retraining only with a single tagger.
+Comparative results obtained for each of our tag-
+gers when using retraining material generated by a
+single tagger (the size of the fresh part of the cor-
+pus to be used as retrain data was also 800 Kw) and
+Tagger Model
+single
+C1
+800
+TreeTagger
+93.0%
+93.4%
+Relax (BT)
+93.7%
+93.9%
+Table 2: Comparative results when retraining with
+a new 800Kw corpus
+when using C1
+800 are reported in table 2. Those re-
+sults point that the use of two taggers to generate
+the retraining corpus, slightly increases the accuracy
+of any tagger since it provides a less noisy model.
+The error rate in the retrain corpus when using the
+Relax-BT tagger alone is 2.4%, while when using
+the coincidences of both taggers is reduced to 1.3%.
+This improvement in the training corpus quality en-
+ables the taggers to learn better models and slightly
+improve their performance. Probably, the cause that
+the performance improvement is not larger must not
+be sought in the training corpus error rate, but in
+the learning abilities of the taggers.
+4.3
+Number of Iterations
+The bootstrapping algorithm must be stopped when
+no further improvements are obtained. This seems
+to happen after the ﬁrst iteration step. Using the
+800Kw from the beginning yields similar results than
+progressively enlarging the corpus size at each step.
+Results are shown in table 3.
+Tagger Model
+C1
+800
+C2
+800
+TreeTagger
+93.4%
+93.5%
+Relax (BT)
+93.9%
+93.8%
+Table 3: Results when retraining with a 800Kw cor-
+pus in one and two steps
+Facts that support this conclusion are:
+• The variations with respect to the results for
+one re–estimation iteration are not signiﬁcant.
+• TreeTagger gets a slight improvement while
+Relax decreases —indicating that the re–
+estimated model does not provide a clear
+improvement–.
+• The intersection corpora used to retrain have
+the same accuracy (98.4%) both in iteration one
+and two, and the diﬀerence in the number or
+coincidences (97.7% in iteration one vs. 98.3%
+in iteration two) is not large enough to provide
+extra information.
+
+4.4
+Use of Weighted Examples
+We have described so far how to combine the results
+of two POS taggers to obtain larger training cor-
+pora with low error rates. We have also combined
+the agreement cases of both taggers with the initial
+hand–disambiguated corpus, in order to obtain a less
+noisy training set.
+Since the hand–disambiguated
+corpus oﬀers a higher reliability than the tagger co-
+incidence set, we might want to establish a reliability
+degree for our corpus, by means of controlling the
+contribution of each part. This can be done through
+the estimation of the error rate of each corpus, and
+establishing a weighted combination which produces
+a new retraining corpus with the desired error rate.
+As mentioned above, if we put together a hand–
+disambiguated (assumed error-free) 70Kw corpus
+and a 195Kw automatically tagged corpus with an
+estimated error rate of 1.6%, we get a 265Kw cor-
+pus with a 1.2% error rate. But if we combine them
+with diﬀerent weights we can control the error rate
+of the corpus: e.g. taking the weight for the correct
+70Kw twice the weight for the 195Kw part, we get
+a corpus of 335Kw3 with an error rate of 0.9%. In
+that way we can adjust the weights to get a training
+corpus with the desired error rate.
+Figure 3 shows the relationship between the error
+rate and the relative weights between C0 and the
+retraining corpus.
+0
+0.2
+0.4
+0.6
+0.8
+1
+0
+5
+10
+15
+20
+25
+30
+35
+40
+45
+weigth
+% error rate
+Figure 3: Relationship between the error rate and the
+relative weights for training corpora.
+This weighted combination enables us to dim the
+undesired eﬀect of noise introduced in the automat-
+ically tagged part of the corpus.
+This combination works as a kind of back-oﬀinter-
+polation between the correct examples of C0 and the
+slightly noisy corpus of coincidences added at each
+3Obviously this occurrences are virtual since part of
+them are duplicated.
+step. By giving higher weights to the former, cases
+well represented in the C0 corpus are not seriously
+inﬂuenced by new erroneous instances, but cases not
+present in the C0 corpus are still incorporated to the
+model. So, the estimations of the statistical parame-
+ters for “new” cases will improve the tagging perfor-
+mance while statistical estimations of already well
+represented cases will be, at most, slightly poorer.
+We have performed an experiment to determine
+the performance obtained when the taggers are
+trained with corpus obtained combining C0 and the
+ﬁrst extension of 200,000 words (N 1
+1 ∩N 1
+2 ) with dif-
+ferent relative weights4. The steps selected are the
+weights corresponding to error rates of 0.1%, 0.2%,
+0.3%, 0.4%, 0.5%, 0.75% and 1%.
+It is obvious that too high weighting in favour
+of initial examples will produce a lower error rate
+(tending to zero, the same than the manual corpus),
+but it will also bias the taggers to behave like the
+initial tagger, and thus will not take advantage of
+the new cases.
+92.6
+92.8
+93
+93.2
+93.4
+93.6
+93.8
+94
+94.2
+94.4
+0
+5
+10
+15
+20
+25
+30
+35
+40
+45
+50
+relative weight
+%acc.
+TreeTagger
+Relax
+Figure 4: Results using the C1
+200 training set with dif-
+ferent weightings
+The results summarized in ﬁgure 4 show that there
+is a clear improvement in the tagger performance
+when combining two training corpora with a proper
+weighting adjustment. Obviously, there is a tradeoﬀ
+point where the performance starts to decrease due
+to an excessive weight for the initial data.
+Although the behaviour of both curves is similar,
+it is also clear that the diﬀerent tagging algorithms
+are not equally sensitive to the weighting values: In
+particular, TreeTagger achieves its highest per-
+formance for weights between 1 and 3, while Relax-
+BT needs a weight around 10.
+4Weights were straightforwardly incorporated to the
+bigrams and trigrams statistics. The decision tree learn-
+ing algorithm had to be slightly modiﬁed to deal with
+weighted examples.
+
+4.5
+Hand–correcting Disagreement Cases
+Another possible way to reduce the error rate in the
+training corpus is hand correcting the disagreement
+cases between taggers. This reduces the error rate of
+the new training corpus at a low human labor cost,
+since the disagreement cases are only a small part of
+the total amount.
+For instance, In C1
+200 corpus, there were 5,000 dis-
+agreement cases. Hand–correcting and adding them
+to the previous set we obtain a slightly larger corpus5
+(270Kw) with a slightly lower error rate (1.17%),
+which can be used to retrain the taggers. We call
+this corpus C1
+M (M stands for manual revision).
+Results obtained with the corrected retraining
+corpus are shown in table 4, together with the re-
+sults obtained with fully automatic retraining corpus
+of 200 Kw (C1
+200) and 800 Kw (C1
+800).
+Tagger Model
+C1
+200
+C1
+M
+C1
+800
+TreeTagger
+93.2%
+93.8%
+93.4%
+Relax (BT)
+93.3%
+93.8%
+93.9%
+Table 4: Comparative results using C1
+200, C1
+M and
+C1
+800 training sets
+The ﬁrst conclusion in this case is that the hand–
+correction of disagreement cases gives a signiﬁcant
+accuracy improvement in both cases. However, the
+gain obtained is the same order than that obtained
+with a larger retraining corpus automatically disam-
+biguated. Unfortunately we had neither more avail-
+able human resources nor time to hand-correct the
+remaining 15,000 disagreement words of C1
+800 in or-
+der to test if some additional improvement can be
+achieved from the best automatic case. Without per-
+forming this experiment it is impossible to extract
+any reliable conclusion. However, we know that the
+price to pay for an uncertain accuracy gain is the ef-
+fort of manually tagging about 20,000 words. Even
+when that would mean an improvement, we suspect
+that it would be more productive to spend this eﬀort
+in constructing a larger initial training corpus.
+Thus, unless there is a very severe restriction on
+the size of the available retraining corpus, it seems
+to be cheaper and faster not to hand correct the
+disagreement cases.
+5The increasing in number of training examples
+is specially noticeable in the case of decision trees
+(+14,000).
+This is due to the fact that each example
+considers a context window of six items. After hand–
+correction all sequences of six words are valid while be-
+fore correction it was quite probable to ﬁnd gaps (cases
+of disagreement) in the sequences of six words of the
+intersection corpus.
+5
+Best Tagger
+All the the above described combinations produce
+a wide range of possibilities to build a retraining
+corpus.
+We can use retraining corpus of diﬀerent
+sizes, perform several retraining steps, and weight
+the combination of the retraining parts. Although
+all possible combinations have not been explored,
+we have set the basis for a deeper analysis of the
+possibilities.
+A promising combination is using the more reli-
+able information obtained so far to build a C1
+Best re-
+training corpus, consisting of C1
+M (which includes C0)
+plus the coincidence cases from the C0
+800 which were
+not included in C1
+M. This combination has only been
+tested in its straightforward form, but we feel that
+the weighted combination of the constituents of C1
+Best
+should produce better results than the reported so
+far.
+On the other hand, the above reported results
+were obtained using only either the TreeTagger
+with decision trees information or the Relax tag-
+ger using bigrams and/or trigrams. Since the Re-
+lax tagger is able to combine diﬀerent kinds of con-
+straints, we can write the decision trees learned by
+TreeTagger in the form of constraints (C), and
+make Relax use them as in (M`arquez and Padr´o,
+1997).
+Table 5 shows the best results obtained with ev-
+ery combination of constraint kinds. The retraining
+corpora which yield each result are also reported.
+Tagger Model
+Amb.
+Overall
+Corpus
+TreeTagger
+93.8%
+97.7%
+C1
+M
+Relax (B)
+93.3%
+97.5%
+C1
+Best
+Relax (T)
+93.7%
+97.6%
+C1
+Best
+Relax (BT)
+93.9%
+97.7%
+C1
+800 C1
+1000
+Relax (C)
+93.8%
+97.7%
+C1
+Best
+Relax (BC)
+94.1%
+97.8%
+C1
+200 C1
+M C1
+Best
+Relax (TC)
+94.2%
+97.8%
+C1
+200
+Relax (BTC)
+94.2%
+97.8%
+C1
+400 C1
+Best
+Table 5: Best results for each tagger with all possible
+constraint combinations
+Further experiments must establish which is the
+most appropriate bootstrapping policy, and whether
+it depends on the used taggers.
+6
+Conclusions and Future Work
+We presented the collaboration between two diﬀer-
+ent POS taggers in a voting approach as a way to in-
+crease tagging accuracy. Since words in which both
+taggers make the same prediction present a higher
+accuracy ratio, tagger collaboration can also be used
+
+to develop large training sets with a low error rate,
+which is specially useful for languages with a reduced
+amount of available linguistic resources.
+The presented results show that:
+• The precision of the taggers taking into account
+only the cases in which they agree, is signiﬁ-
+cantly higher than overall cases. Although this
+is not useful to disambiguate a corpus, it may
+be used in new corpus development to reduce
+the amount of hand tagging while keeping the
+noise to a minimum.
+This has been used in
+a bootstrapping procedure to develop an anno-
+tated corpus of Spanish of over 5Mw, with an
+estimated accuracy of 97.8%.
+• Obviously, the recall obtained joining the pro-
+posals from both taggers is higher than the
+results of any of them separately and a re-
+maining ambiguity is introduced, which causes
+a decrease in precision.
+Depending on the
+user needs, it might be worthwhile accepting
+a higher remaining ambiguity in favour of a
+higher recall. With the models acquired from
+the best training corpus, we get a tagger with
+a recall of 98.3% and a remaining ambiguity of
+1.009 tags/word, that is, 99.1% of the words
+are fully disambiguated and the remaining 0.9%
+keep only two tags.
+This procedure can easily be extended to a larger
+number of taggers. We are currently studying the
+collaboration of three taggers, using a ECGI tagger
+(Pla and Prieto, 1998) in addition to the other two.
+Preliminary results point that the cases in which
+the three taggers coincide, present a higher accu-
+racy than when only two taggers are used (96.7%
+compared to 95.5% on ambiguous words) and that
+the coverage is still very high (96.2% compared to
+97.7%).
+Nevertheless, the diﬀerence is relatively small, and
+it must be further checked to establish whether it is
+worth using a larger number of taggers for build-
+ing low error rate training corpora. In addition, as
+pointed in (Padr´o and M`arquez, 1998), the error in
+test corpora may introduce distortion in the eval-
+uation and invalidate small improvements and al-
+though we have used a manually disambiguated test
+corpus, it may contain human errors. For all this
+reasons, much work on improving the test corpus
+and on validating the so far obtained results is still
+to be done.
+7
+Acknowledgments
+This research has been partially funded by the
+Spanish Research Department (CICYT’s ITEM
+project TIC96–1243–C03–02), by the EU Commis-
+sion (EuroWordNet LE4003) and by the Catalan Re-
+search Department (CIRIT’s quality research group
+1995SGR 00566).
+References
+[Briscoe et al.1994] Briscoe,
+E.J.;
+Greﬀenstette,
+G.;
+Padr´o, L. and Serail, I.; 1994. Hybrid techniques for
+training Part-of-Speech taggers. ESPRIT BRA-7315
+Acquilex II, Working Paper 45.
+[Carmona et al.1998]
+Carmona J.; Cervell S.; M`arquez L.; Mart´ı M.A.;
+Padr´o L.; Placer R.; Rodr´ıguez H.; Taul´e M. and
+Turmo J. 1998. An Environment for Morphosyntac-
+tic Processing of Unrestricted Spanish Text. In Pro-
+ceedings of 1st International Conference on Language
+Resources and Evaluation, LREC’98. Granada, Spain.
+[Church1988] Church, K.W.;
+1988. A Stochastic Parts
+Program and Noun Phrase Parser for Unrestricted
+Text. In Proceedings 2nd ANLP, Austin, Texas.
+[Elworthy1994] Elworthy, D.;
+1994. Does Baum-Welch
+re-estimation help taggers?. In Proceedings 4th ANLP,
+Stuttgart, Germany.
+[J¨arvinen1994] J¨arvinen, T.; 1994. Annotating 200 Mil-
+lion Words: The Bank of English Project.
+In Pro-
+ceedings of 15th International Conference on Compu-
+tational Linguistics, COLING’94, Kyoto, Japan.
+[Leech et al.1994] Leech, G.; Garside, R. and Bryant, M.;
+1994. CLAWS4: The Tagging of the British National
+Corpus. In Proceedings of 15th International Confer-
+ence on Computational Linguistics, COLING’94, Ky-
+oto, Japan.
+[Marcus et al.1993] Marcus, M.P.; Marcinkiewicz, M.A.
+and Santorini, B.; 1993. Building a Large Annotated
+Corpus of English: The Penn Treebank. In Computa-
+tional Linguistics, Vol.19, n.2.
+[M`arquez and Padr´o1997] M`arquez, L. and Padr´o, L.
+1997.
+A Flexible POS Tagger Using an Automat-
+ically Acquired Language Model.
+In Proceedings of
+joint E/ACL meeting. Madrid, Spain.
+[M`arquez and Rodr´ıguez1997] M`arquez,
+L.
+and
+Rodr´ıguez, H. 1997. Automatically Acquiring a Lan-
+guage Model for POS Tagging Using Decision Trees.
+In Proceedings of the Second Conference on Recent Ad-
+vances in Natural Language Processing, RANLP ’97.
+Tzigov Chark, Bulgaria.
+[Padr´o1996] Padr´o, L. 1996. POS Tagging Using Relax-
+ation Labelling. In Proceedings of 16th International
+Conference on Computational Linguistics, COLING
+’96. Copenhagen, Denmark.
+[Padr´o and M`arquez1998] Padr´o, L. and M`arquez, L.
+1998. On the Evaluation and Comparison of Taggers:
+the Eﬀect of Noise in Testing Corpora. In Proccedings
+of the joint 17th International Conference on Compu-
+tational Linguistics and 36th Annual Meeting of the
+Association for Computational Linguistics, COLING-
+ACL’98. Montr´eal, Canada.
+
+[Pla and Prieto1998] Pla, F. and Prieto, N.
+1998.
+Us-
+ing Grammatical Inference Methods for Automatic
+Part–of–Speech Tagging. In Proceedings of 1st Inter-
+national Conference on Language Resources and Eval-
+uation, LREC’98. Granada, Spain.

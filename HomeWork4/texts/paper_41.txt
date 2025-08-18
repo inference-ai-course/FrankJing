@@ -1,0 +1,1622 @@
+arXiv:cs/9907003v1  [cs.CL]  5 Jul 1999
+Annotation Graphs as a Framework for
+Multidimensional Linguistic Data Analysis
+Steven Bird and Mark Liberman
+Linguistic Data Consortium, University of Pennsylvania
+3615 Market St, Philadelphia, PA 19104-2608, USA
+{sb,myl}@ldc.upenn.edu
+Abstract
+In
+recent
+work
+we
+have
+presented
+a
+formal
+framework
+for
+linguistic
+annotation
+based
+on
+labeled acyclic digraphs. These ‘annotation graphs’
+oﬀer a simple yet powerful method for representing
+complex
+annotation
+structures
+incorporating
+hierarchy and overlap.
+Here, we motivate and
+illustrate
+our
+approach
+using
+discourse-level
+annotations of text and speech data drawn from
+the CALLHOME, COCONUT, MUC-7, DAMSL
+and TRAINS annotation schemes.
+With the help
+of domain specialists, we have constructed a hybrid
+multi-level annotation for a fragment of the Boston
+University Radio Speech Corpus which includes
+the following levels: segment, word, breath, ToBI,
+Tilt, Treebank, coreference and named entity. We
+show how annotation graphs can represent hybrid
+multi-level structures which derive from a diverse
+set of ﬁle formats. We also show how the approach
+facilitates
+substantive
+comparison
+of
+multiple
+annotations of a single signal based on diﬀerent
+theoretical models.
+The discussion shows how
+annotation graphs open the door to wide-ranging
+integration of tools, formats and corpora.
+1
+Annotation Graphs
+When we examine the kinds of speech transcription
+and annotation found in many existing ‘communi-
+ties of practice’, we see commonality of abstract
+form along with diversity of concrete format. Our
+survey of annotation practice (Bird and Liberman,
+1999) attests to this commonality amidst diversity.
+(See [www.ldc.upenn.edu/annotation] for pointers to
+online material.) We observed that all annotations
+of recorded linguistic signals require one unavoidable
+basic action:
+to associate a label, or an ordered
+sequence of labels, with a stretch of time in the
+recording(s). Such annotations also typically distin-
+guish labels of diﬀerent types, such as spoken words
+vs. non-speech noises.
+Diﬀerent types of annota-
+tion often span diﬀerent-sized stretches of recorded
+time, without necessarily forming a strict hierarchy:
+thus a conversation contains (perhaps overlapping)
+conversational turns, turns contain (perhaps inter-
+rupted) words, and words contain (perhaps shared)
+phonetic segments.
+Some types of annotation are
+systematically incommensurable with others: thus
+disﬂuency structures (Taylor, 1995) and focus struc-
+tures (Jackendoﬀ, 1972) often cut across conversa-
+tional turns and syntactic constituents.
+A minimal formalization of this basic set of prac-
+tices is a directed graph with ﬁelded records on the
+arcs and optional time references on the nodes. We
+have argued that this minimal formalization in fact
+has suﬃcient expressive capacity to encode, in a
+reasonably intuitive way, all of the kinds of linguis-
+tic annotations in use today. We have also argued
+that this minimal formalization has good properties
+with respect to creation, maintenance and searching
+of annotations.
+We believe that these advantages
+are especially strong in the case of discourse anno-
+tations, because of the prevalence of cross-cutting
+structures and the need to compare multiple anno-
+tations representing diﬀerent purposes and perspec-
+tives.
+Translation into annotation graphs does not mag-
+ically create compatibility among systems whose
+semantics are diﬀerent. For instance, there are many
+diﬀerent approaches to transcribing ﬁlled pauses in
+English – each will translate easily into an annota-
+tion graph framework, but their semantic incompati-
+bility is not thereby erased. However, it does enable
+us to focus on the substantive diﬀerences without
+having to be concerned with diverse formats, and
+without being forced to recode annotations in an
+agreed, common format. Therefore, we focus on the
+structure of annotations, independently of domain-
+speciﬁc concerns about permissible tags, attributes,
+and values.
+As reference corpora are published for a wider
+range
+of
+spoken
+language
+genres,
+annotation
+work is increasingly reusing the same primary
+data.
+For
+instance,
+the
+Switchboard
+corpus
+[www.ldc.upenn.edu/Catalog/LDC93S7.html]
+has
+been marked up for disﬂuency (Taylor,
+1995).
+See
+[www.cis.upenn.edu/~treebank/switchboard-
+sample.html] for an example, which also includes a
+
+separate part-of-speech annotation and a Treebank-
+style annotation. Hirschman and Chinchor (1997)
+give an example of MUC-7 coreference annotation
+applied to an existing TRAINS dialog annotation
+marking speaker turns and overlap.
+We shall
+encounter a number of such cases here.
+The Formalism
+As we said above, we take an annotation label to
+be a ﬁelded record. A minimal but suﬃcient set of
+ﬁelds would be:
+type this represents a level of an annotation, such
+as the segment, word and discourse levels;
+label this is a contentful property, such as a par-
+ticular word, a speaker’s name, or a discourse
+function;
+class this is an optional ﬁeld which permits the
+arcs of an annotation graph to be co-indexed
+as members of an equivalence class.1
+One might add further ﬁelds for holding comments,
+annotator id, update history, and so on.
+Let T be a set of types, L be a set of labels, and
+C be a set of classes. Let R = {⟨t, l, c⟩| t ∈T, l ∈
+L, c ∈C}, the set of records over T, L, C. Let N be
+a set of nodes. Annotation graphs (AGs) are now
+deﬁned as follows:
+Deﬁnition 1 An annotation graph G over R, N
+is a set of triples having the form ⟨n1, r, n2⟩, r ∈R,
+n1, n2 ∈N, which satisﬁes the following conditions:
+1. ⟨N, {⟨n1, n2⟩| ⟨n1, r, n2⟩∈A}⟩
+is
+a
+labelled
+acyclic digraph.
+2. τ : N ⇀ℜis an order-preserving map assigning
+times to (some of) the nodes.
+For detailed discussion of these structures, see
+(Bird and Liberman, 1999). Here we present a frag-
+ment (taken from Figure 8 below) to illustrate the
+deﬁnition. For convenience the components of the
+ﬁelded records which decorate the arcs are separated
+using the slash symbol. The example contains two
+word arcs, and a discourse tag encoding ‘inﬂuence
+on speaker’. No class ﬁelds are used. Not all nodes
+have a time reference.
+1
+52.46
+2
+ 
+W/oh/
+3
+53.14
+D/IOS:Commit/
+W/okay/
+1 We have avoided using explicit pointers since we prefer
+not to associate formal identiﬁers to the arcs.
+Equivalence
+classes will be exempliﬁed later.
+The minimal annotation graph for this structure is
+as follows:
+T
+=
+{W, D}
+L
+=
+{oh, okay, IOS:Commit}
+C
+=
+∅
+N
+=
+{1, 2, 3}
+τ
+=
+{⟨1, 52.46⟩, ⟨3, 53.14⟩}
+A
+=
+
+
+
+⟨1, W/oh/, 2⟩,
+⟨2, W/okay/, 3⟩,
+⟨1, D/IOS:Commit/, 3⟩
+
+
+
+XML is a natural ‘surface representation’ for
+annotation graphs and could provide the primary
+exchange format.
+A particularly simple XML
+encoding of the above structure is shown below;
+one might choose to use a richer XML encoding in
+practice.
+<annotation>
+<arc>
+<begin id=1 time=52.46>
+<label type="W" name="oh">
+<end id=2>
+</arc>
+<arc>
+<begin id=2>
+<label type="W" name="okay">
+<end id=3 time=53.14>
+</arc>
+<arc>
+<begin id=1 time=52.46>
+<label type="D" name="IOS:Commit">
+<end id=3 time=53.14>
+</arc>
+</annotation>
+2
+AGs and Discourse Markup
+2.1
+LDC Telephone Speech Transcripts
+The LDC-published CALLHOME corpora include
+digital audio, transcripts and lexicons for telephone
+conversations
+in
+several
+languages,
+and
+are
+designed to support research on speech recognition
+[www.ldc.upenn.edu/Catalog/LDC96S46.html].
+The
+transcripts
+exhibit
+abundant
+overlap
+between
+speaker turns. What follows is a typical fragment
+of an annotation. Each stretch of speech consists of
+a begin time, an end time, a speaker designation,
+and the transcription for the cited stretch of time.
+We have augmented the annotation with + and *
+to indicate partial and total overlap (respectively)
+with the previous speaker turn.
+
+15
+ 
+16
+ 
+W/and
+31
+994.19
+32
+994.46
+speaker/B
+W/yeah
+17
+994.65
+W/%um
+33
+996.51
+19
+ 
+20
+996.59
+W/%um
+35
+997.61
+speaker/B
+34
+ 
+W/whatever’s
+22
+ 
+23
+ 
+W/.
+11
+991.75
+12
+ 
+speaker/A
+13
+ 
+W/he
+14
+ 
+W/said
+W/,
+18
+995.21
+W/he
+speaker/A
+21
+997.40
+W/right
+25
+1002.55
+speaker/A
+24
+ 
+W/so
+W/helpful
+Figure 1: Graph Structure for LDC Telephone Speech Example
+speaker/
+speaker/
+W/
+W/
+.61
+.19
+.46
+.65
+.21
+.51
+.40
+.59
+,
+A
+he
+%um
+and
+said
+B
+yeah
+A
+so
+.
+right
+B
+helpful
+whatever’s
+A
+995
+994
+996
+997
+%um
+right
+he
+so
+.
+Figure 2: Visualization for LDC Telephone Speech Example
+962.68 970.21 A: He was changing projects every couple
+of weeks and he said he couldn’t keep on top of it.
+He couldn’t learn the whole new area
+* 968.71 969.00 B: %mm.
+970.35 971.94 A: that fast each time.
+* 971.23 971.42 B: %mm.
+972.46 979.47 A: %um, and he says he went in and had some
+tests, and he was diagnosed as having attention deficit
+disorder. Which
+980.18 989.56 A: you know, given how he’s how far he’s
+gotten, you know, he got his degree at &Tufts and all,
+I found that surprising that for the first time as an
+adult they’re diagnosing this. %um
++ 989.42 991.86 B: %mm. I wonder about it. But anyway.
++ 991.75 994.65 A: yeah, but that’s what he said. And %um
+* 994.19 994.46 B: yeah.
+995.21 996.59 A: He %um
++ 996.51 997.61 B: Whatever’s helpful.
++ 997.40 1002.55 A: Right. So he found this new job as a
+financial consultant and seems to be happy with that.
+1003.14 1003.45 B: Good.
+Long turns (e.g. the period from 972.46 to 989.56
+seconds) were broken up into shorter stretches for
+the convenience of the annotators and to provide
+additional time references. A section of this anno-
+tation which includes an example of total overlap is
+represented in annotation graph form in Figure 1,
+with the accompanying visualization shown in Fig-
+ure 2. (We have no commitment to this particular
+visualization; the graph structures can be visualized
+in many ways and the perspicuity of a visualization
+format will be somewhat domain-speciﬁc.)
+The turns are attributed to speakers using the
+speaker/ type. All of the words, punctuation and
+disﬂuencies are given the W/ type, though we could
+easily opt for a more reﬁned version in which these
+are assigned diﬀerent types. The class ﬁeld is not
+used here. Observe that each speaker turn is a dis-
+joint piece of graph structure, and that hierarchical
+organisation uses the ‘chart construction’ (Gazdar
+and Mellish, 1989, 179ﬀ).
+Thus, we make a logi-
+cal distinction between the situation where the end-
+points of two pieces of annotation necessarily coin-
+cide (by sharing the same node) from the situation
+where endpoints happen to coincide (by having dis-
+tinct nodes which contain the same time reference).
+The former possibility is required for hierarchical
+structure, and the latter possibility is required for
+overlapping speaker turns where words spoken by
+diﬀerent speakers may happen to sharing the same
+boundary.
+2.2
+Dialogue Annotation in COCONUT
+The COCONUT corpus is a set of dialogues in which
+the two conversants collaborate on a task of deciding
+what furniture to buy for a house (Di Eugenio et al.,
+1998).
+The coding scheme augments the DAMSL
+scheme (Allen and Core, 1997) by having some new
+top-level tags and by further specifying some exist-
+ing tags. An example is given in Figure 3.
+The example shows ﬁve utterance pieces, identi-
+ﬁed (a-e), four produced by speaker S1 and one pro-
+duced by speaker S2. The discourse annotations can
+be glossed as follows: Accept - the speaker is agreeing
+to a possible action or a claim; Commit - the speaker
+potentially commits to intend to perform a future
+speciﬁc action, and the commitment is not contin-
+gent upon the assent of the addressee; Offer - the
+speaker potentially commits to intend to perform a
+future speciﬁc action, and the commitment is contin-
+gent upon the assent of the addressee; Open-Option
+- the speaker provides an option for the addressee’s
+future action; Action-Directive - the utterance is
+designed to cause the addressee to undertake a spe-
+ciﬁc action.
+In utterance (e) of Figure 3, speaker S1 simul-
+taneously accepts to the meta-action in (d) of not
+
+Accept, Commit
+S1:
+(a)
+Let’s take the blue rug for 250,
+(b)
+my rug wouldn’t match
+Open-Option
+(c)
+which is yellow for 150.
+Action-Directive
+S2:
+(d)
+we don’t have to match...
+Accept(d), Offer, Commit
+S1:
+(e)
+well then let’s use mine for 150
+Figure 3: Dialogue with COCONUT Coding Scheme
+D/
+well then let’s use mine for 150 /e
+we don’t have to match ... /d
+Let’s take the blue rug for 250 , /a
+which is yellow for 150 . /c
+Accept /d
+my rug wouldn’t match /b
+Commit
+Action-Directive
+Open-Option
+Offer
+Commit
+Accept
+Sp/
+S1
+S2
+S1
+Utt/
+Figure 4: Visualization of Annotation Graph for COCONUT Example
+having matching colors, and to the regular action of
+using S1’s yellow rug. The latter acceptance is not
+explicitly represented in the original notation, so we
+shall only consider the former.
+In representing this dialogue structure using anno-
+tation graphs, we will be concerned to achieve the
+following: (i) to treat multiple annotations of the
+same utterance fragment as an unordered set, rather
+than a list, to simplify indexing and query; (ii) to
+explicitly link speaker S1 to utterances (a-c); (iii)
+to formalize the relationship between Accept(d) and
+utterance (d); and (iv) formalize the rest of the
+annotation structure which is implicit in the textual
+representation.
+We adopt the types Sp (speaker), Utt (utterance)
+and D (discourse).
+A more reﬁned type system
+could include other levels of representation, it could
+distinguish forward versus backward communicative
+function, and so on.
+For the names we employ:
+speaker identiﬁers S1,
+S2;
+discourse tags Offer,
+Commit, Accept, Open-Option, Action-Directive; and
+orthographic strings representing the utterances.
+For the classes (the third, optional ﬁeld) we employ
+the utterance identiﬁers a, b, c, d, e.
+An
+annotation
+graph
+representation
+of
+the
+COCONUT example can now be represented as in
+Figure 4. The arcs are structured into three layers,
+one for each type, where the types are written on
+the left. If the optional class ﬁeld is speciﬁed, this
+information follows the name ﬁeld, separated by a
+slash. The Accept/d arc refers to the S2 utterance
+simply by virtue of the fact that both share the
+same class ﬁeld.
+Observe that the Commit and Accept tags for (a)
+are unordered, unlike the original annotation. and
+that speaker S1 is associated with all utterances (a-
+c), rather than being explicitly linked to (a) and
+implicitly linked to (b) and (c) as in Figure 3.
+To make the referent of the Accept tag clear, we
+make use of the class ﬁeld.
+Recall that the third
+component of the ﬁelded records, the class ﬁeld, per-
+mits arcs to refer to each other. Both the referring
+and the referenced arcs are assigned to equivalence
+class d.
+2.3
+Coreference Annotation in MUC-7
+The MUC-7 Message Understanding Conference
+speciﬁed tasks for information extraction, named
+entity and coreference.
+Coreferring expressions
+are
+to
+be
+linked
+using
+SGML
+markup
+with
+ID
+and
+REF
+tags
+(Hirschman
+and
+Chinchor,
+1997).
+Figure
+5
+is
+a
+sample
+of
+text
+from
+the
+Boston
+University
+Radio
+Speech
+Corpus
+[www.ldc.upenn.edu/Catalog/LDC96S36.html],
+marked up with coreference tags. (We are grateful
+to Lynette Hirschman for providing us with this
+annotation.)
+Noun phrases participating in coreference are
+wrapped with <coref>...</coref> tags, which can
+bear the attributes ID, REF, TYPE and MIN. Each such
+phrase is given a unique identiﬁer, which may be
+referenced by a REF attribute somewhere else. Our
+example contains the following references: 3 →2,
+4 →2, 6 →5, 7 →5, 8 →5, 12 →11, 15 →13.
+The TYPE attribute encodes the relationship between
+the anaphor and the antecedent.
+Currently, only
+the identity relation is marked, and so coreferences
+form an equivalence class. Accordingly, our example
+contains the following equivalence classes: {2, 3, 4},
+{5, 6, 7, 8}, {11, 12}, {13, 15}.
+In our AG representation we choose the ﬁrst num-
+ber from each of these sets as the identiﬁer for the
+equivalence class. MUC-7 also contains a speciﬁca-
+tion for named entity annotation. Figure 7 gives an
+example, to be discussed in §3.2. This uses empty
+
+<COREF ID="2" MIN="woman">
+This woman
+</COREF>
+receives three hundred dollars a
+month under
+<COREF ID="5">
+General Relief
+</COREF>
+, plus
+<COREF ID="16"
+MIN="four hundred dollars">
+four hundred dollars a month in
+<COREF ID="17"
+MIN="benefits" REF="16">
+A.F.D.C. benefits
+</COREF>
+</COREF>
+for
+<COREF ID="9" MIN="son">
+<COREF ID="3" REF="2">
+her
+</COREF>
+son
+</COREF>
+, who is
+<COREF ID="10" MIN="citizen" REF="9">
+a U.S. citizen
+</COREF>.
+<COREF ID="4" REF="2">
+She
+</COREF>
+’s among
+<COREF ID="18" MIN="aliens">
+an estimated five hundred illegal
+aliens on
+<COREF ID="6" REF="5">
+General Relief
+</COREF>
+out of
+<COREF ID="11" MIN="population">
+<COREF ID="13" MIN="state">
+the state
+</COREF>
+’s total illegal immigrant
+population of
+<COREF ID="12" REF="11">
+one hundred thousand
+</COREF>
+</COREF>
+</COREF>
+.
+<COREF ID="7" REF="5">
+General Relief
+</COREF>
+is for needy families and unemployable
+adults who don’t qualify for other public
+assistance.
+Welfare Department spokeswoman
+Michael Reganburg says
+<COREF ID="15" MIN="state" REF="13">
+the state
+</COREF>
+will save about one million dollars a year if
+<COREF ID="20" MIN="aliens" REF="18">
+illegal aliens
+</COREF>
+are denied
+<COREF ID="8" REF="5">
+General Relief
+</COREF>
+.
+Figure 5: Coreference Annotation for BU Example
+2
+0.32
+3
+0.62
+woman
+13
+7.06
+14
+7.19
+her
+CR//2
+15
+7.62
+CR/son/9
+4
+2.74
+6
+3.80
+CR//5
+5
+3.28
+General
+son
+7
+4.31
+plus
+16
+7.83
+who
+8
+4.52
+9
+4.80
+hundred
+17
+7.97
+is
+12
+6.87
+for
+19
+8.40
+20
+8.96
+citizen
+1
+0.0
+This
+CR/woman/2
+receives...in
+Relief
+four
+CR/four hundred dollars/16
+10
+5.61
+dollars...in
+CR/benefits/16
+11
+6.34
+A.F.D.C.
+benefits
+18
+8.02
+a
+CR/citizen/9
+U.S.
+Figure 6: Annotation Graph for Coreference Example
+tags to get around the problem of cross-cutting hier-
+archies. This problem does not arise in the annota-
+tion graph formalism; see (Bird and Liberman, 1999,
+2.7).
+3
+Hybrid Annotations
+There are many cases where a given corpus is anno-
+tated at several levels, from discourse to phonetics.
+While a uniform structure is sometimes imposed,
+as with Partitur (Schiel et al., 1998), established
+practice and existing tools may give rise to corpora
+transcribed using diﬀerent formats for diﬀerent lev-
+els. Two examples of hybrid annotation will be dis-
+cussed here: a TRAINS+DAMSL annotation, and
+an eight-level annotation of the Boston University
+Radio Speech Corpus.
+3.1
+DAMSL annotation of TRAINS
+The TRAINS corpus (Heeman and Allen, 1993) is a
+collection of about 100 dialogues containing a total
+of 5,900 speaker turns [www.ldc.upenn.edu/Catalog
+/LDC95S25.html].
+Part of a transcript is shown
+below, where s and u designate the two speakers,
+<sil>
+denotes
+silent
+periods,
+and
++
+denotes
+boundaries of speaker overlaps.
+utt1
+: s:
+hello <sil> can I help you
+utt2
+: u:
+yes <sil> um <sil> I have a problem here
+utt3
+:
+I need to transport one tanker of orange juice
+to Avon <sil> and a boxcar of bananas to
+Corning <sil> by three p.m.
+utt4
+:
+and I think it’s midnight now
+utt5
+: s:
+uh right it’s midnight
+utt6
+: u:
+okay so we need to <sil>
+um get a tanker of OJ to Avon is the first
+thing we need to do
+utt7
+:
++ so +
+utt8
+: s:
++ okay +
+utt9
+:
+<click> so we have to make orange juice first
+utt10 : u:
+mm-hm <sil> okay so we’re gonna pick up <sil>
+an engine two <sil> from Elmira
+utt11 :
+go to Corning <sil> pick up the tanker
+utt12 : s:
+mm-hm
+utt13 : u:
+go back to Elmira <sil> to get <sil> pick up
+the orange juice
+utt14 : s:
+alright <sil> um well <sil> we also need to
+make the orange juice <sil> so we need to get
++ oranges <sil> to Elmira +
+utt15 : u:
++ oh we need to pick up + oranges oh + okay +
+utt16 : s:
++ yeah +
+utt17 : u:
+alright so <sil> engine number two is going to
+pick up a boxcar
+Accompanying this transcription are a number of
+xwaves label ﬁles containing time-aligned word-level
+and segment-level transcriptions. Below, the start of
+ﬁle speaker0.words is shown on the left, and the start
+of ﬁle speaker0.phones is shown on the right. The
+ﬁrst number gives the ﬁle oﬀset (in seconds), and the
+middle number gives the label color. The ﬁnal part
+
+This woman receives
+<b_numex TYPE="MONEY">
+three hundred dollars
+<e_numex>
+a month under General Relief, plus
+<b_numex TYPE="MONEY">
+four hundred dollars
+<e_numex>
+a month in A.F.D.C. benefits for her son, who is a
+<b_enamex TYPE="LOCATION">
+U.S.
+<e_enamex>
+citizen.
+She’s among an estimated five hundred illegal
+aliens on General Relief out of the state’s total illegal
+immigrant population of one hundred thousand.
+General
+Relief is for needy families and unemployable adults
+who don’t qualify for other public assistance.
+<b_enamex TYPE="ORGANIZATION">
+Welfare Department
+<e_enamex>
+spokeswoman
+<b_enamex TYPE="PERSON">
+Michael Reganburg
+<e_enamex>
+says the state will save about
+<b_numex TYPE="MONEY">
+one million dollars
+<e_numex>
+a year if illegal aliens are denied General Relief.
+Figure 7: Named Entity Annotation for BU Example
+is a label for the interval which ends at the speci-
+ﬁed time. Silence is marked explicitly (again using
+<sil>) so we can infer that the ﬁrst word ‘hello’ occu-
+pies the interval [0.110000, 0.488555]. Evidently the
+segment-level annotation was done independently of
+the word-level annotation, and so the times do not
+line up exactly.
+0.110000
+122 <sil>
+0.100000 122 <sil>
+0.488555
+122 hello
+0.220000 122 hh
+0.534001
+122 <sil>
+0.250000 122 eh ;*
+0.640000
+122 can
+0.330000 122 l
+0.690000
+122 I
+0.460000 122 ow+1
+0.930000
+122 help
+0.530000 122 k
+1.068003
+122 you
+0.570000 122 ih
+14.670000
+122 <sil>
+0.640000 122 n
+14.920000
+122 uh
+0.690000 122 ay
+15.188292
+122 right
+0.760000 122 hh
+The TRAINS annotations show the presence of
+backchannel cues and overlap. An example of over-
+lap is shown below:
+50.130000
+122 <sil>
+50.260000
+122 so
+50.330000
+122 we
+50.480000
+122 need
+50.540000
+122 to
+50.651716
+122 get
+51.094197
+122 <sil>
+51.306658
+122 oh
+51.360000
+122 oranges
+51.410000
+122 we
+51.470000
+122 <sil>
+51.540000
+122 to
+51.560000
+122 need
+51.620000
+122 to
+51.850000
+122 pick
+51.975728
+122 Elmira
+52.020000
+122 up
+52.470000
+122 oranges
+52.666781
+122 oh
+52.807837
+76 <sil>
+52.940000
+122 okay
+53.047996
+76 yeah
+53.535600
+122 <sil>
+53.785600
+122 alright
+54.303529
+122 so
+As seen in Figure 2 and explained more fully in
+(Bird and Liberman, 1999), overlap carries no impli-
+cations for the internal structure of speaker turns or
+for the position of turn-boundaries.
+Now, independently of this annotation there is
+also a dialogue annotation in DAMSL, as shown in
+Figure 8. Here, a dialog is broken down into turns
+and thence into utterances, where the tags contain
+discourse-level annotation.
+In representing this hybrid annotation as an AG
+we are motivated by the following concerns. First,
+we want to preserve the distinction between the
+TRAINS and DAMSL components, so that they can
+remain in their native formats (and be manipulated
+by their native tools) and be converted indepen-
+dently to AGs then combined using AG union, and
+so that they can be projected back out if necessary.
+Second, we want to identify those boundaries that
+necessarily have the same time reference (such as
+the end of utterance 17 and the end of the word
+‘Elmira’), and represent them using a single graph
+node.
+Contributions from diﬀerent speakers will
+remain disconnected in the graph structure. Finally,
+we want to use the equivalence class names to allow
+cross-references between utterances. A fragment of
+the proposed annotation graph is depicted using our
+visualization format in Figure 9. Observe that, for
+brevity, some discourse tags are not represented, and
+the phonetic segment level is omitted.
+Note that the tags in Figure 8 have the form of
+ﬁelded records and so, according to the AG deﬁni-
+tion, all the attributes of a tag could be put into
+a single label. We have chosen to maximally split
+such records into multiple arc labels, so that search
+predicates do not need to take account of inter-
+nal structure, and to limit the consequences of an
+erroneous code. A relevant analogy here is that of
+pre-composed versus compound characters in Uni-
+code. The presence of both forms of a character in
+a text raises problems for searching and collating.
+This problem is avoided through normalization, and
+this is typically done by maximally decomposing the
+characters.
+3.2
+Multiple annotations of the BU corpus
+Linguistic analysis is always multivocal, in two
+senses. First, there are many types of entities and
+
+<Dialog Id=d92a-2.2 Annotation-date="08-14-97" Annotator="Reconciled Version"
+Speech="/d92a-2.2/dialog.fea" Status=Verified>
+...
+<Turn Id=T9 Speaker="s" Speech="-s 44.853889 -e 52.175728">
+...
+<Utt Id=utt17 Agreement=None Influence-on-listener=Action-directive Influence-on-speaker=Commit Info-level=Task Response-to=""
+Speech="-s 45.87 -e 52.175728" Statement=Assert>
+[sil] um well [sil] we also need to make the orange juice [sil]
+so we need to get + oranges [sil] to Elmira +
+<Turn Id=T10 Speaker="u" Speech="-s 51.106658 -e 53.14">
+<Utt Id=utt18 Agreement=Accept Influence-on-listener=Action-directive Influence-on-speaker=Commit Info-level=Task
+Response-to="utt17" Speech="-s 51.106658 -e 52.67" Statement=Assert Understanding=SU-Acknowledge>
++ oh we need to pick up + oranges
+<Utt Id=utt19 Agreement=Accept Influence-on-speaker=Commit Info-level=Task Response-to="utt17" Speech="-s 52.466781 -e 53.14"
+Understanding=None>
+oh + okay +
+<Turn Id=T11 Speaker="s" Speech="-s 52.047996 -e 53.247996">
+<Utt Id=utt20 Agreement=Accept Info-level=Task Response-to="utt18" Speech="-s 52.047996 -e 53.247996" Understanding=SU-Acknowledge>
++ yeah +
+...
+</Dialog>
+Figure 8: DAMSL Annotation of a TRAINS Dialogue
+so we need to get oranges
+...
+.36
+.65
+.09
+to
+Elmira
+.13 .26 .33
+.48 .54
+.47
+.54
+.30 .41
+.56 .62
+.85 .02
+.47 .66
+.94
+.97
+yeah
+.80
+W/
+Utt/
+oh we
+need to
+pick up
+oranges
+oh
+okay
+oh we
+need to
+pick up
+oranges
+oh
+okay
+W/
+Utt/
+D/
+Turn/T10
+... so we need to get oranges to Elmira /U17
+oh we need to pick up oranges  /U18
+Resp /U17
+.04
+Turn/T9
+D/
+IOS:Commit
+IOL:Action-directive
+IOS:Commit
+IOL:Action-directive
+oh okay /U19
+yeah /U20
+Resp /U18
+Turn /T11
+IOS:Commit
+Figure 9: Graph Structure for TRAINS Example
+relations, on many scales, from acoustic features
+spanning a hundredth of a second to narrative
+structures spanning tens of minutes. Second, there
+are many alternative representations or construals
+of a given kind of linguistic information.
+Sometimes these alternatives are simply more
+or less convenient for a certain purpose.
+Thus a
+researcher who thinks theoretically of phonological
+features organized into moras, syllables and feet,
+will often ﬁnd it convenient to use a phonemic
+string as a representational approximation.
+In
+other cases, however, diﬀerent sorts of transcription
+or annotation reﬂect diﬀerent theories about the
+ontology of linguistic structure or the functional
+categories of communication.
+The AG representation oﬀers a way to deal pro-
+ductively with both kinds of multivocality. It pro-
+vides a framework for relating diﬀerent categories of
+linguistic analysis, and at the same time to compare
+diﬀerent approaches to a given type of analysis.
+As
+an
+example,
+Figure
+10
+shows
+an
+AG-
+based
+visualization
+of
+eight
+diﬀerent
+sorts
+of
+annotation
+of
+a
+phrase
+from
+the
+BU
+Radio
+Corpus, produced by Mari Ostendorf and others
+at
+Boston
+University,
+and
+published
+by
+the
+LDC
+[www.ldc.upenn.edu/Catalog/LDC96S36.html].
+The
+basic material
+is
+from
+a
+recording
+of
+a
+local public
+radio news broadcast.
+The
+BU
+annotations
+include
+four
+types
+of
+information:
+orthographic transcripts, broad phonetic transcripts
+(including
+main
+word
+stress),
+and
+two
+kinds
+
+of prosodic annotation,
+all time-aligned to the
+digital audio ﬁles.
+The two kinds of prosodic
+annotation implement the system known as ToBI
+[www.ling.ohio-state.edu/phonetics/E ToBI/].
+ToBI
+is
+an
+acronym
+for
+“Tones
+and
+Break
+Indices”, and correspondingly provides two types of
+information: Tones, which are taken from a ﬁxed
+vocabulary of categories of (stress-linked) “pitch
+accents” and (juncture-linked) “boundary tones”;
+and Break Indices, which are integers characterizing
+the strength and nature of interword disjunctures.
+We
+have
+added
+four
+additional
+annota-
+tions:
+coreference
+annotation
+and
+named
+entity
+annotation
+in
+the
+style
+of
+MUC-7
+[www.muc.saic.com/proceedings/muc 7 toc.html]
+provided by Lynette Hirschman; syntactic structures
+in the style of the Penn TreeBank (Marcus et al.,
+1993) provided by Ann Taylor; and an alternative
+annotation for the F0 aspects of prosody, known as
+Tilt (Taylor, 1998) and provided by its inventor,
+Paul Taylor. Taylor has done Tilt annotations for
+much of the BU corpus, and will soon be publishing
+them as a point of comparison with the ToBI tonal
+annotation.
+Tilt diﬀers from ToBI in providing a
+quantitative rather than qualitative characterization
+of F0 obtrusions: where ToBI might say “this is a
+L+H* pitch accent,” Tilt would say “This is an F0
+obtrusion that starts at time t0, lasts for duration d
+seconds, involves a Hz total F0 change, and ends l
+Hz diﬀerent in F0 from where it started.”
+As usual, the various annotations come in a bewil-
+dering variety of ﬁle formats. These are not entirely
+trivial to put into registration, because (for instance)
+the TreeBank terminal string contains both more
+(e.g. traces) and fewer (e.g. breaths) tokens than the
+orthographic transcription does. One other slightly
+tricky point: the connection between the word string
+and the “break indices” (which are ToBI’s character-
+izations of the nature of interword disjuncture) are
+mediated only by identity in the ﬂoating-point time
+values assigned to word boundaries and to break
+indices in separate ﬁles. Since these time values are
+expressed as ASCII strings, it is easy to lose the
+identity relationship without meaning to, simply by
+reading in and writing out the values to programs
+that may make diﬀerent choices of internal variable
+type (e.g. ﬂoat vs. double), or number of decimal
+digits to print out, etc.
+Problems of this type are normal whenever multi-
+ple annotations need to be compared. Solving them
+is not rocket science, but does take careful work.
+When annotations with separate histories involve
+mutually inconsistent corrections, silent omissions of
+problematic material, or other typical developments,
+the problems are multiplied. In noting such diﬃcul-
+ties, we are not criticizing the authors of the annota-
+tions, but rather observing the value of being able to
+put multiple annotations into a common framework.
+Once this common framework is established, via
+translation of all eight “strands” into AG graph
+terms, we have the basis for posing queries that
+cut across the diﬀerent types of annotation.
+For
+instance, we might look at the distribution of Tilt
+parameters as a function of ToBI accent type; or
+the distribution of Tilt and ToBI values for initial
+vs. non-initial members of coreference sets; or the
+relative size of Tilt F0-change measures for nouns
+vs. verbs.
+We do not have the space in this paper to dis-
+cuss the design of an AG-based query formalism at
+length – and indeed, many details of practical AG
+query systems remain to be decided – but a short
+discussion will indicate the direction we propose to
+take. Of course the crux is simply to be able to put
+all the diﬀerent annotations into the same frame of
+reference, but beyond this, there are some aspects
+of the annotation graph formalism that have nice
+properties for deﬁning a query system. For example,
+if an annotation graph is deﬁned as a set of “arcs”
+like those given in the XML encoding in §1, then
+every member of the power set of this arc set is
+also a well-formed annotation graph. The power set
+construction provides the basis for a useful query
+algebra, since it deﬁnes the complete set of possible
+values for queries over the AG in question, and is
+obviously closed under intersection, union and rela-
+tive complement. As another example, various time-
+based indexes are deﬁnable on an adequately time-
+anchored annotation graph, with the result that
+many sorts of precedence, inclusion and overlap rela-
+tions are easy to calculate for arbitrary subgraphs.
+See (Bird and Liberman, 1999, §5) for discussion.
+In this section, we have indicated some of the ways
+in which the AG framework can facilitate the anal-
+ysis of complex combinations linguistic annotations.
+These annotation sets are typically multivocal, both
+in the sense of covering multiple types of linguistic
+information, and also in the sense of providing multi-
+ple versions of particular types of analysis. Discourse
+studies are especially multivocal in both senses, and
+so we feel that this approach will be especially help-
+ful to discourse researchers.
+4
+Conclusion
+This proliferation of formats and approaches can be
+viewed as a sign of intellectual ferment. The fact
+that so many people have devoted so much energy to
+ﬁelding new entries into this bazaar of data formats
+indicates how important the computational study of
+communicative interaction has become.
+However,
+for many researchers, this multiplicity of approaches
+
+2
+4
+5
+6
+ToBI
+Breath
+W
+ToBI
+7
+8
+9
+COREF
+Treebank
+NE
+PP
+QP
+NP
+PP
+NP
+WH
+NP
+SBAR
+NP-T
+VP
+NP-PRD
+LOC
+/2
+Tilt
+NP
+NP
+a/22.7
+hr
+fr
+wmn
+1
+2
+3
+4
+5
+6
+7
+8
+9
+This
+receives three hdrd
+dlrs
+mnth
+under General
+Relief
+plus
+four hdrd
+dlrs
+mnth in
+A.F.D.C.
+benefits
+son
+who is
+U.S.
+citizen
+a
+a
+a
+brth
+H*
+!H* !H-
+!H* L-L%
+H*
+H*
+H*
+H*
+L-H%
+H*
+H*
+H*
+L-L%
+L+H*
+H-L%
+L*
+H*
+L-H*
+L-L%
+L*
+a/125.9
+t/-.536
+f/271.8
+1
+t/-.442
+3
+1
+2
+QP
+NP
+NP-SBJ
+NP
+PP
+NP-ADV
+a/70.0
+a/24.9
+t/-.57
+t/.349
+a/38.9
+t/.317
+f/133.8 f/177.4
+a/85.3
+t/.563
+a/20.9
+t/-.577
+a/27.2
+t/.515
+a/15.3
+t/-.069
+a/67.5
+t/.194
+a/56.0
+t/.131
+a/35.5
+t/.587
+a/59.4
+t/-.203
+f/166.6
+1
+1
+3
+1
+1
+1 1
+4
+2
+1
+4
+2
+1
+1
+1
+1
+4
+1
+1
+4-
+4
+MONEY
+MONEY
+1
+1
+2
+4
+1
+woman/2
+benefits/16
+four hundred dollars/16
+son/9
+/5
+NP
+S
+VP
+NP
+Figure 10: Visualization for BU Example
+has produced headaches and confusion, rather than
+productive scientiﬁc advances.
+We need a way to
+integrate these approaches without imposing some
+form of premature closure that would crush experi-
+mentation and innovation.
+Both here, and in associated work (Bird and
+Liberman, 1999), we have endeavored to show
+how all current annotation formats involve the
+basic actions of associating labels with stretches
+of recorded signal data, and attributing logical
+sequence, hierarchy and coindexing to such labels.
+We
+have
+grounded
+this
+assertion
+by
+deﬁning
+annotation graphs and by showing how a disparate
+range of annotation formats can be mapped into
+AGs.
+This work provides a central piece of the
+algebraic foundation for inter-translatable formats
+and inter-operating tools.
+The intention is not
+to replace the formats and tools that have been
+accepted by any existing community of practice,
+but rather to make the descriptive and analytical
+practices, the formats, data and tools universally
+accessible.
+This means that annotation content
+for diverse domains and theoretical models can
+be created and maintained using tools that are
+the most suitable or familiar to the community in
+question.
+It also means that we can get started
+on integrating annotations, corpora and research
+ﬁndings right away, without having to wait until
+ﬁnal agreement on all possible tags and attributes
+has been achieved.
+There are many existing approaches to discourse
+annotation, and many options for future approaches.
+Our
+explorations
+presuppose
+a
+particular
+set
+of goals:
+(i)
+generality,
+speciﬁcity,
+simplicity;
+(ii)
+searchability
+and
+browsability;
+and
+(iii)
+maintainability and durability. These are discussed
+in full in (Bird and Liberman, 1999, §6).
+By
+identifying
+a
+common
+conceptual
+core
+to
+all
+annotation
+structures,
+we
+hope
+to
+provide
+a
+foundation for a wide-ranging integration of tools,
+formats and corpora.
+One might, by analogy to
+translation systems, describe AGs as an interlingua
+which permits free exchange of annotation data
+between n systems once n interfaces have been
+written, rather than n2 interfaces.
+Although we have been primarily concerned with
+the structure rather than the content of annota-
+tions, the approach opens the way to meaningful
+evaluation of content and comparison of contentful
+diﬀerences between annotations, since it is possible
+to do all manner of quasi-correlational analyses of
+parallel annotations. A tool for converting a given
+format into the AG framework only needs to be
+written once. Once this has been done, it becomes
+a straightforward task to pose complex queries over
+multiple corpora. Whereas if one were to start with
+annotations in several distinct ﬁle formats, it would
+be a major programming chore to ask even a simple
+question.
+Acknowledgements
+We are grateful to the following people for discus-
+sions and input concerning the material presented
+here:
+Chris Cieri, Dave Graﬀ, Julia Hirschberg,
+Lynette Hirschman, Brian MacWhinney, Ann Tay-
+lor, Paul Taylor, Marilyn Walker, and three anony-
+mous reviewers.
+
+References
+James Allen and Mark Core. 1997. Draft of
+DAMSL: Dialog act markup in several layers.
+[www.cs.rochester.edu/research/trains/annotation
+/RevisedManual/RevisedManual.html].
+Steven Bird and Mark Liberman. 1999. A formal
+framework for linguistic annotation. Technical
+Report MS-CIS-99-01, Department of Computer
+and Information Science, University of
+Pennsylvania. [xxx.lanl.gov/abs/cs.CL/9903003],
+expanded from version presented at ICSLP-98,
+Sydney.
+Barbara Di Eugenio, Pamela W. Jordan, and Liina
+Pylkk¨anen. 1998. The COCONUT project:
+Dialogue annotation manual. Technical Report
+98-1, University of Pittsburgh, Intelligent Systems
+Program.
+[www.isp.pitt.edu/˜intgen/coconut.html].
+Gerald Gazdar and Chris Mellish. 1989. Natural
+Language Processing in Prolog: An Introduction to
+Computational Linguistics. Addison-Wesley.
+Peter A. Heeman and James Allen. 1993. The
+TRAINS 93 dialogues. Technical Report TRAINS
+Technical Note 94-2, Computer Science
+Department, University of Rochester.
+[ftp.cs.rochester.edu/pub/papers/ai
+/94.tn2.Trains 93 dialogues.ps.gz].
+Lynette Hirschman and Nancy Chinchor. 1997.
+Muc-7 coreference task deﬁnition. In Message
+Understanding Conference Proceedings. Published
+online.
+[www.muc.saic.com/proceedings/muc 7 toc.html].
+Ray Jackendoﬀ. 1972. Semantic Interpretation in
+Generative Grammar. Cambridge Mass.: MIT
+Press.
+Mitchell P. Marcus, Beatrice Santorini, and
+Mary Ann Marcinkiewicz. 1993. Building a large
+annotated corpus of English: The Penn Treebank.
+Computational Linguistics, 19(2):313–30.
+www.cis.upenn.edu/˜treebank/home.html.
+Florian Schiel, Susanne Burger, Anja Geumann,
+and Karl Weilhammer. 1998. The Partitur format
+at BAS. In Proceedings of the First International
+Conference on Language Resources and Evaluation.
+[www.phonetik.uni-muenchen.de
+/Bas/BasFormatseng.html].
+Ann Taylor, 1995. Dysﬂuency Annotation Stylebook
+for the Switchboard Corpus. University of
+Pennsylvania, Department of Computer and
+Information Science.
+[ftp.cis.upenn.edu/pub/treebank/swbd/doc/DFL-
+book.ps], original version by Marie Meteer et
+al.
+Paul A. Taylor. 1998. The tilt intonation model.
+In Proceedings of the 5th International Conference
+on Spoken Language Processing.

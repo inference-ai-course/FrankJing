@@ -1,0 +1,3550 @@
+arXiv:cs/9901005v1  [cs.CL]  13 Jan 1999
+Online Appendix to An Empirical Approach to Temporal Reference Resolution
+Janyce M. Wiebe, Thomas P. O’Hara, Thorsten ¨Ohrstr¨om-Sandgren & Kenneth J. McKeever
+1. Temporal Reference Resolution Rules
+1.1 Introduction
+This document provides a detailed algorithm for temporal reference resolution as used in
+the Artwork system developed at New Mexico State Univsersity. The remainder of this
+section covers conventions used in the algorithm. The algorithm itself is in Section 1.2.
+1.1.1 Abbreviations
+1. SpanUtt = Spanish Utterance; a list of the Spanish words occurring in a sentence.
+For instance: “cinco de marzo no” would be represented as [cinco,de,marzo,no].
+2. TU = Temporal Unit.
+3. ILT = A structured representation of the meaning of an SpanUtt, possibly containing
+a TU. The ILT representation is deﬁned by the Enthusiast project (Levin et al. 1995).
+4. DE = Discourse Entity; Composed of a SpanUtt and an ILT.
+5. FL = Focus List (ordered list of DE’s).
+6. RF = Reference Frame; a Temporal Unit used as a temporal frame of reference.
+7. CF = Certainty Factor.
+8. timeValue = One of {day, week, weekend, month, year}.
+1.1.2 Functions
+1. retrieveField(FieldName, Structure): returns the ﬁller for FieldName in Structure,
+if Structure contains a FieldName, otherwise NULL.
+2. retrieveUtterance(DE): returns the Spanish utterance from DE, if one exists, oth-
+erwise NULL.
+3. dateCopy(TU): Copies the start dates of a TU to their corresponding end dates.
+The function returns the modiﬁed TU and a CF, as a tuple. The CF is based on the
+combination of ﬁelds copied.
+4. distanceFactor(DE): Returns a number reﬂecting how far back on the focus list
+DE is.
+5. futureRange(N ILT): Returns a range in the future consistent with the ILT. For
+instance, “second week in August”, interpreted as the second Monday through the
+following Friday in August, closest in the future. If successful, a new TU is returned,
+otherwise, NULL.
+1
+
+6. last(timeV alue, RF): returns the last timeValue before reference frame RF.
+Ex:
+last(week, [Tues 20 Aug 1996]
+Mon-Fri, 12-16th, August, 1996
+7. lastFLRange(timeV alue, N): N is either ’1’, or ’2’. If N = ’1’ then lastFLRange
+returns the TU on the focus list that most closely matches timeValue from the focus
+list. If N = ’2’, one matching TU on the list is skipped.
+8. merge(TU1, TU2): if there exist conﬂicting ﬁelds in TU1 and TU2, return NULL.
+Otherwise return a TU which contains the union of all ﬁelds of TU1 and TU2.
+9. mergeUpper(TU1, TU2): the same as merge, except only ﬁelds of the same or less
+speciﬁc levels than the most speciﬁc ﬁeld in TU1 are considered.
+10. mostSpeciﬁc(X, TU): X is either start, end, or both to indicate the starting
+time, end time, or both the starting and end time, respectively. The function returns
+the speciﬁcity level of the most speciﬁc ﬁeld of TU, where month is level 1.
+Ex:
+mostSpeciﬁc(start, TU) returns the speciﬁcity level of the most speciﬁc ﬁeld in the
+start time of TU, and mostSpeciﬁc(both, TU) returns the speciﬁcity level of the most
+speciﬁc ﬁeld of the entire TU.
+11. next(timeV alue, RF): returns the next timeValue that follows the reference frame
+RF.
+12. nextInclToday(timeV alue, RF): Same as next, but this version considers “today”
+as a possibility.
+13. resolveDeictic(TU, todaysDate): resolves the deictic term TU with respect to the
+dialog date.
+14. applyRule(TU, RuleName [, subcase]): Invokes rule RuleName. Returns the return
+value of RuleName.
+15. this(timeV alue): Returns the current timeV alue with respect to the conversation
+date.
+Ex:
+Dialog date is Thursday, 22th, August, 1996
+“This week has been long.”,
+Returns Mon-Fri, 19th-23rd, August, 1996
+16. isDeictic(TU): returns TRUE if TU contains deictic information, otherwise NULL.
+17. isRange(X, TU): returns TRUE, if TU is an X, where X = {week, day, time},
+otherwise returns NULL.
+18. moreEquSpeciﬁc(TU1, TU2): returns TRUE if TU1 is either more speciﬁc than
+TU2, or if the two have the same level of speciﬁcity, otherwise, NULL.
+19. moreSpeciﬁcLow(TU1, TU2): same as moreEqu Speciﬁc, but only tests levels of
+less or equal speciﬁcity as time of day.
+2
+
+1.1.3 Typographic Conventions
+Variables are italicized (e.g., TU, startTimes). Variable values (e.g., month, date), key-
+words (e.g., if, then, else), and conceptual notations are in bold-face. Function names
+are in roman (e.g., merge(TU1, TU2)).
+X→Y refers to the ﬁeld(s) Y within X (e.g.,
+TU→startTimes, TU→endTimes, TU→name) % Denotes comments in rules. forward-
+looking-adjective are adjectives that indicate a time in the future. For instance, “next”,
+“following”, or in Spanish “proximo”, “siguiente”, “viene”.
+1.2 Rules
+Rules are invoked in two diﬀerent ways: one way for rules that do not access the focus list,
+and one for those that do. For rules that do not access the focus list the procedure is as
+follows.
+1. Extract all of the TUs in the DE.
+2. Apply the rule to each TU.
+3. Put the resulting TUs back in the same order as they appeared in the original TUL.
+For rules the do access the focus list, a similar process is performed, but with one important
+diﬀerence: When accessing the speciﬁc rule for the ﬁrst Temporal Unit, which entity oﬀthe
+focus list that was used is recorded, and the remaining temporal units are forced to use the
+same one.
+1.2.1 Rules for deictic relations
+Deictic Rule 1: (A type of relation D-simple)
+A deictic expression is resolved into a time interpreted with respect to the dialog date
+(e.g., “Tomorrow”, “last week”).
+if isDeictic(TU) then
+return ⟨0.9, merge(TU, resolveDeictic(TU, todaysDate))⟩
+else fail
+% Ex: “Let’s meet tomorrow”, with an interpretation of Mon 24 Sept
+Deictic Rule 2: (A type of relation D-frame-of-reference)
+A forward time is calculated with respect to today as a frame of reference.
+Subcase i:
+if not isDeictic(TU) then
+SpanUtt = retrieveUtterance(ILT)
+if forward-looking-adjective ∩SpanUtt ̸= {} then
+if(mostSpeciﬁc(start, TU) ≤date) then
+new TU = next(mostSpeciﬁc(start,TU), todaysDate)
+return⟨0.2, merge(TU, new TU)⟩
+else fail
+3
+
+else fail
+else fail
+% Ex: “How about if we meet next Monday?”, interpreted as Monday, Sep 30
+Subcase ii:
+if not isDeictic(TU) then
+if(mostSpeciﬁc(start, TU) ≤date) then
+new TU = nextInclToday(mostSpeciﬁc(start,TU), todaysDate)
+return⟨0.3, merge(TU,new TU)⟩
+else fail
+else fail
+% Ex: “Hmmm, how about Monday?” interpreted as the current Monday,
+that is Mon 23 Sept. This rule diﬀerers from the previous one only
+in that the current date is also taken into consideration.
+The following cover special cases not discussed in the body of the paper.
+Deictic Rule 3: (A type of relation D-simple)
+if not isDeictic(TU) then
+if(the rest of ∈TU→Spec) then
+newTU = mergeAll(the rest of(Name)
+% Ex: “I can meet Tuesday”, resolved to Tue 25 Sept
+“Good, I can meet for the rest of the week as well”,
+resolved to Wed 26 Sept - Fri 28 Sept”
+else if(the end of ∈Spec) ∧(this ∈Spec) then
+newTU = the end of(Name)
+% Ex: “I can meet Monday”, resolved to Mon 24 Sept
+“No – better at the end of the week.”,
+resolved to Thu 27 Sept - Fri 28 Sept”
+else if(the end of ∈Spec) ∧(next ∈Spec) then
+newTU = the end of next(Name)
+% Ex: “I can meet at the end of next month”, resolved to Mon 21 Oct - Thu 31 Oct
+(The last ten days of the coming month)
+else if(last ∈Spec) then
+newTU = last(Name, TU)
+% Ex: “Last Thursday’s meeting was very productive.”, resolved to Thu 17 Sept
+else if(this ∈Spec) ∧(coming ∈Spec) then
+newTU = next(Name, TU)
+% Ex: “This coming Thursday is good.”, resolved to Thu 27 Sept
+else if(this ∈Spec) then
+newTU = this(Name, TU)
+% Ex: “This has been a good month.”, resolved to Sat 1 Sept - Sun 30 Sept
+else
+newTU = futureRange(TU)
+4
+
+if(newTU) = null then fail
+% Ex: “I can meet second week in October”,
+under the interpretation Mon 8 Oct to Fri 12 Oct.
+return ⟨0.5, merge(TU, newTU)⟩
+Deictic Rule 4: (A special case for handling end times) The mentioned time is not an
+interval; resulting frame’s end dates correspond to the starting dates.
+if (simpleTime(TU) ∧{sday, sdate, smonth} is not null) then
+⟨newTU, CF⟩= dateCopy(TU)
+return ⟨CF, merge(TU, newTU)⟩
+else fail
+% Ex: “Let’s meet Friday the 27 of September”, under the interpretation that the
+start time and the end time both refer to Fri 27 Sept.
+Deictic Rule 5: (A type of relation D-simple)
+if at least one of {TU→SMIN, TU→SHOUR, TU→STIME DAY} ̸= null ∧
+current utterance does not contain a date then
+% Make sure that no FL entry refers to time of day or lower
+if (∀TU ∈FL : mostSpeciﬁc(both, TUfl) ≥time of day) then
+today TU = today’s date
+return ⟨0.5, merge(TU, today TU)⟩
+else fail
+else fail
+% Ex:
+“How about 3:00?” resolved to 3:00 Mon 23 Sept
+Deictic Rule 6: (A type of relation D-simple)
+if(TU→Name = {weekend}) ∧(TU→Spec ∈{next, this, last}) then
+if(TU→Spec = next then
+new TU = next(weekend)
+if(TU→Spec = this then
+new TU = this(weekend)
+if(TU→Spec = last then
+new TU = last(weekend)
+return ⟨0.8, merge(TU, new TU)⟩
+else fail
+else fail
+% Ex:
+“Is next weekend OK?” resolved to Sat 29-Sun 30 Sept
+5
+
+1.2.2 Rules for anaphoric relations
+Anaphoric Rule 1: (A type of relation A-co-reference)
+The times discussed are similar; the resulting frame is the union of both times.
+for each non-empty Temporal Unit TUfl from FL, starting with most recent
+if (moreEquSpeciﬁc(TU, TUfl)) ∧(merge(TU, TUfl) ̸= null) then
+return ⟨0.8 - distanceFactor(TUfl), merge(TU, TUfl)⟩
+else fail
+% Ex:
+“Let’s meet Tuesday.” resolved to Tue 24 Sept
+“How about 2?” resolved to 2pm Tue 24 Sept
+Anaphoric Rule 2: (A type of relation A-less-speciﬁc)
+The current utterance evokes a time that includes the time evoked by a previous time,
+and the current time is less speciﬁc.
+for each non-empty Temporal Unit TUfl from FL, starting with most recent
+if not (moreEquSpeciﬁc(TU, TUfl)) ∧(moreEquSpeciﬁc(TUfl, TU)) then
+if (merge(TU, TUfl) ̸= null) then
+return ⟨0.8 - distanceFactor(TU), merge(TU, TUfl)⟩
+else fail
+else fail
+% Ex:
+“Let’s meet Tuesday.” resolved to Tue 24 Sept
+“How about 2?” resolved to 2pm Tue 24 Sept
+“On Tuesday?” resolved to Tue 24 Sept
+This subcase diﬀers from the previous subcase in that
+in this case a relationship can be made to hold if the
+current utterance is less speciﬁc than the one
+on the focus list.
+Anaphoric Rule 3: (A type of relation A-frame-of-reference)
+A forward time is calculated with respect to a time on the Focus List as a frame of
+reference.
+Subcase i:
+if not isDeictic(TU) then
+if {forward-looking-adjective} ∩ILT→SpanUtt ̸= {} then
+if(leastSpeciﬁc(TU→startFields) ≤date) then
+for each non-empty Temporal Unit TUfl from FL, starting with most recent
+if (TU→name = {week} then
+Base CF = 0.4
+else
+Base CF = 0.3
+if moreEquSpeciﬁc(TU, TUfl) then
+RF = retrieveStartDate(TUfl)
+new TU = next(mostSpeciﬁc(start,TU), RF)
+6
+
+return ⟨Base CF - distanceFactor(TU), merge(TU, new TU)⟩
+else fail
+else fail
+else fail
+else fail
+% Ex:
+“Let’s meet next Monday.” resolved to Mon 30 Sept
+“Tuesday is better for me.” resolved to Tue 1 Oct
+Subcase ii:
+if not isDeictic(TU) then
+if(leastSpeciﬁc(TU→startFields) ≤date) then
+for each non-empty Temporal Unit TUfl from FL, starting with most recent
+if moreEquSpeciﬁc(TU, TUfl) then
+RF = retrieveStartDate(TUfl)
+new TU = nextInclToday(mostSpeciﬁc(start,TU), RF)
+return ⟨0.35 - distanceFactor(TU), merge(TU, new TU)⟩
+else fail
+else fail
+else fail
+%
+This is nearly identical to the previous case, but we’re not
+looking for a forward-looking-adjective, and
+today’s date is considered.
+Ex:
+“Let’s meet next Monday.” resolved to Mon 30 Sept
+“Monday is good.” resolved to Mon 30 Sept
+Since the second sentence doesn’t provide clues
+about the Monday (such as “next”, “the following” etc.),
+the current Monday on the focus list is used as opposed
+to the Monday following Monday the 30th.
+Anaphoric Rule 4: (A type of relation A-modify)
+The current time is a modiﬁcation of a previous time
+if not isDeictic(TU) then
+if(mostSpeciﬁc(both, TU) ≥time of day)
+for each non-empty Temporal Unit TUfl from FL, starting with most recent
+if (moreSpeciﬁcLow(TU, TUfl) then
+return ⟨0.35 - distanceFactor(TU), mergeUpper(TUfl, TU)⟩
+else fail
+else fail
+else fail
+% Ex:
+“Let’s meet Tuesday at 2:00.” resolved to 2 pm, Tue 24 Sept
+“3:00 is better for me.” resolved to 3 pm, Tue 24 Sept
+The following anaphoric rules do not appear in the paper.
+Anaphoric Rule 5: (A type of relation A-frame-of-reference)
+7
+
+if (TU→startFields = {}) ∧(TU→endFields ̸= {}) then
+for each non-empty Temporal Unit TUfl from FL, starting with most recent
+if moreEquSpeciﬁc(TU, TUfl) then
+new TU = mergeUpper(TUfl, TU)
+if(leastSpeciﬁc(end, TU) ≤date) then
+RF = retrieveStartDate(TUfl)
+new TU→endFields = next(mostSpeciﬁc(endFields, TU), RF)
+return ⟨0.5 - distanceFactor(TU),new TU)⟩
+else fail
+else fail
+else fail
+% Ex:
+“How about Tuesday the 25th at 2?” resolved to 2 pm, Tue 25 Sept
+“I am busy until Friday”, resolved to Tue 25-Friday 28 Sept
+Anaphoric Rule 6: (A type of relation A-frame-of-reference)
+Subcase i:
+if not(isDeictic(TU)) then
+if(TU→Spec ∈{that, same, all range, less than, more than, long})
+∧(TU→Name ∈{month, week, day, time}) then
+TUfl = lastFLRange(Name)
+if (mergeUpper(TUfl, TU)) ̸= null then
+return⟨0.5,mergeUpper(TUfl, TU)⟩
+else if (merge(TUfl, TU))̸= null then
+return⟨0.5,merge(TUfl, TU)⟩
+else fail
+else fail
+else fail
+% Ex:
+“Let’s meet Oct 8th to Oct 11th” resolved to Tue 8 Oct - Fri 11 Oct
+“that week sounds good” resolved to Tue 8 Oct - Fri 11 Oct
+Subcase ii:
+if not(isDeictic(TU)) then
+Name = retrieveField(name, TU)
+Spec = retrieveField(speciﬁer, TU)
+if(the rest of ∈Spec) ∧(that ∈Spec) then
+startTU→startFields = applyRule(TU, ANA3, ’i’)
+endTU→endFields = next(Name, startFields)
+newTU = merge(startTU, endTU)
+else if(the end of ∈Spec) ∧(that ∈Spec) then
+RF = applyRule(TU, ANA3, ’i’)
+newTU = the end of(RF)
+return ⟨0.5,newTU⟩
+else fail
+else fail
+8
+
+% Ex:
+“Let’s meet Oct 8th to Oct 11th” resolved to Tue 8 Oct - Fri 11 Oct
+“The end of that week is better” resolved to Thu 10 Oct - Fri 11 Oct
+Anaphoric Rule 7: (A type of relation A-co-reference)
+if(other ∈TU→Spec) ∧(indeﬁnite not in TU→Spec) then
+if(Name ∈{month, week, day, time}) then
+newTU = lastFLRange(TU,2)
+if(merge(newTU, TU) ̸= null) then
+return ⟨0.7 - distanceFactor(newTU),merge(newTU,TU)⟩
+else fail
+else fail
+% Ex:
+“Let’s meet Tuesday.” resolved to Tue 24 Sept
+“How about Thursday?” resolved to Thu 26 Sept
+“No, the other day sounds better” resolved to Tue 24 Sept
+distanceFactor(TUfl), new TU⟩
+Anaphoric Rule 8: (A type of relation A-co-reference)
+Name : = retrieveField(name, TU)
+Spec = retrieveField(speciﬁer, TU)
+if(Name : ∈{week, day, time}) ∧(Spec ∈{that, plural, both of}) then
+for each non-empty Temporal Unit TU1−fl from FL, starting with most recent
+for each non-empty Temporal Unit TU2−fl from FL, starting with TU1−fl
+if(isRange(Name :, TU1−fl)) ∧(isRange(Name :, TU2−fl)) then
+Speaker1 = retrieveField(speaker, SpanUtt)
+Speaker2 = retrieveField(speaker, SpanUtt)
+if(Speaker1 = Speaker2) then
+if(Name = day) ∧(TU1−fl ∧TU2−fl are within the same week) ∨
+if(Name = week) ∧(TU1−fl ∧TU2−fl are within the same year) ∨
+if(Name = day) ∧(TU1−fl ∧TU2−fl are in the same day) then
+return ⟨0.7, [merge(TU, TU1−fl), merge(TU, TU2−fl)]⟩
+else fail
+else fail
+else fail
+else fail
+Ex:
+“How about Tuesday and Wednesday?” resolved to Tue 24 Sept, Wed 25 Sept
+“Those days sound ﬁne.” resolved to Tue 24 Sept, Wed 25 Sept
+% This rule heuristically uses the last two occurrences of Name :.
+9
+
+2. Normalized form of a Temporal Unit
+This appendix gives the speciﬁc structure, and possible information contained within a
+normalized Temporal Unit (TU), as used in the Artwork project, developed at New Mex-
+ico State University in conjunction with the Computing Research Laboratory. A list of
+Temporal Units LTU is a structure containing one or more TU’s.
+2.1 Notation Used
+The following BNF-style convention is used:
+1. atom An atom is a single entry in a list. An atom cannot be expanded any further.
+2. Non-terminal A Non-terminal indicates a structure that is constructed by either one
+or more atoms, or of other non-terminals.
+3. [...] open-close angeled brackets denote the beginning and end of a list. For example,
+[this, is, a, list] is a list containing four atoms.
+4. * An asterisk denotes a list that may be repeated zero or more times. For example:
+[Repeat, this, list]* →[ ] (empty list) or [repeat, this, list],. . . , [repeat, this, list].
+5. + A plus sign denotes a list that occurs one or more times. time.
+6. | The “|” sign indicates a choice. For example: Person = man | woman
+2.2 High Level Format of a When Frame
+All structures in the Artwork project, adhere with the following format:
+[Structure Name, Structure Filler]
+For example,
+[Structure Name, Structure Filler]
+[sday week, SDAY WEEK]
+[sday week, thursday].
+The general format of an LTU follows:
+LTU = [when-frame, TU*]
+Thus, the name of the structure is when-frame and the ﬁller is either zero ([ ]), or more TU.
+10
+
+2.3 Detailed Format of a TU
+[when,
+[connective, CONNECTIVE],
+[gen spec, GEN SPEC],
+[duration, [length, DURATION], [dur speciﬁer, DUR SPECIFIER],
+[name, NAME],
+[interval,
+[speciﬁer, [SPECIFIER]],
+[start,
+[sday status, [DAY VALUE, DAY ORIGIN],
+[sday week, DAY WEEK],
+[sday, DAY],
+[stime day, TIME DAY],
+[sam pm, AM PM]],
+[smonth, [MONTH VALUE, MONTH ORIGIN]],
+[shour status, [HOUR VALUE, HOUR ORIGIN],
+[stime adv, TIME ADV],
+[shour, HOUR],
+[smin, MIN]]],
+[end,
+[eday status, [DAY VALUE, DAY ORIGIN],
+[eday week, DAY WEEK],
+[eday, DAY],
+[etime day, TIME DAY],
+[eam pm, AM PM]],
+[emonth, [MONTH VALUE, MONTH ORIGIN]],
+[ehour status, [HOUR VALUE, HOUR ORIGIN],
+[etime adv, TIME ADV],
+[ehour, HOUR],
+[emin, MIN]]]],
+[modiﬁers, MODIFIER]]
+Figure 1: Structural layout of a Temporal Unit.
+Figure 1 illustrates the structural layout of a single TU. The following tables and ﬁgures
+presents the possible values each temporal ﬁeld can take (Table 1, Figure 2 and Table 2).
+The NAME ﬁeld indicates the name referred to in the ﬁelds in the above structured TU.
+The VALUE column illustrates the set of values that each entry might take. A null value
+indicates that no information is available. The third column provides a description of the
+name ﬁeld. An in-depth description about each ﬁeld is given at the end of the table. The
+last ﬁeld in the table, “R” indicates whether the information can be repeated.
+A “Y”
+11
+
+indicates that it can be, and an “N” indicates that it cannot be. If a ﬁeld is repeated, it is
+preceded by the keyword “*multiple*”, otherwise it is not preceded by the keyword. For
+example,
+dur speciﬁer = {*multiple*, the end of, second} and
+dur speciﬁer = {the end of}
+Since dur speciﬁer can be repeated, it is indicated by the keyword *multiple*, as
+shown in the ﬁrst example. However, since there is only one ﬁller in the second example,
+the keyword *multiple* is omitted. Fields that can take on a large number of values or
+need special attention are underlined in the second column of the table, and expanded at
+the end of this section.
+A Temporal Unit comprises three parts: information about the time in general (e.g.,
+duration, name, etc.), the start time, and the end time. Table 1 shows information on the
+general ﬁelds, and Figure 2 indicates the values these ﬁelds can take. Table 2 shows ﬁelds
+applicable to the starting time of a TU. The ending time ﬁelds are similar to the ﬁelds in
+Table 2, so no table is shown for the ending times.
+NAME
+POSSIBLE VALUES
+DESCRIPTION
+CONNECTIVE
+and
+|
+because
+|
+but
+|
+for example | if | or | so |
+then | therefore | unless |
+that is to say | null
+how multiple TUs are connected
+GEN SPEC
+generic | speciﬁc | null
+the genericity of a time
+DURATION
+0..MAXINT (only whole num-
+bers) | epsilon | undetermined
+| null
+the diﬀerence (in hours) between
+the start and end time
+DUR SPECIFIER
+determined | part determined
+| not-complete
+the frame from which the dura-
+tion
+information was retrieved unless
+calculated or null; repeatable
+NAME
+Indexical | Special Name |
+Unit | null
+special
+information about the
+current TU not necessarily deter-
+minable by other ﬁelds.
+SPECIFIER
+Speciﬁer | 0..MAXINT (only
+whole numbers) | null
+Info
+Table 1: General ﬁelds of a Temporal Unit
+12
+
+Speciﬁer ::=
+all member | all range | also | another | any | anytime | approximate |
+at least | behind | both of | concrete | couple | deﬁnite | early |
+either of | even | exact | except | few | ﬁrst | following | fourth |
+in front of | indeﬁnite | last | late | less than | long | middle | more than |
+most member | most range | necessary | negative | next | only | other | particular |
+perhaps | plural | preceding | same | second | second last | short | some | sometime |
+that | the end of | the rest of | third | this | what | which
+Indexical ::=
+now | today | tomorrow | date | time | then | that | there |
+here | later | when | what
+Special Name ::=
+independence day | thanksgiving | thanksgiving day | labor day
+Unit ::=
+minute | hour | day | week | month | year |
+decade | century | lunch time | working day | weekend | weekday |
+early | late | sometime | anytime
+Figure 2: Possible values for the general ﬁelds
+13
+
+NAME
+POSSIBLE VALUES
+DESCRIPTION
+R
+SDAY VALUE
+determined
+| part determined | unde-
+termined | same | null
+amount of information avail-
+able to determine the start
+date
+N
+SDAY ORIGIN
+when | clariﬁed | topic |
+null
+the frame from which the start
+day information was retrieved
+Y
+SDAY WEEK
+monday,. . . , sunday | null
+the start week-day
+N
+SDAY
+1,. . . , 31 | null
+the start date
+N
+STIME DAY
+afternoon
+| evening | mid afternoon
+| mid morning | midnight
+| morning | night | noon |
+null
+the general start time of a 24-
+hour period
+N
+SAM PM
+am | pm | null
+the
+start
+time
+(morning
+|
+afternoon)
+N
+SMONTH VALUE
+1,. . . , 12 | null
+the starting month in a nu-
+merical format.
+E.g.
+| Jan-
+uary = 1,. . . , December = 12
+N
+SMONTH ORIGIN
+when | clariﬁed | topic |
+null
+the frame from which the start
+month was retrieved
+Y
+SHOUR VALUE
+determined
+| part determined | unde-
+termined | same | null
+amount of information avail-
+able to determine the start
+time
+N
+SHOUR ORIGIN
+when | clariﬁed | topic |
+null
+the frame from which the
+start hour information was
+retrieved
+Y
+STIME ADV
+after | at | before | from |
+’til | to | until | null
+the adverb associated with the
+start time
+N
+SHOUR
+1,. . . , 12 | null
+This ﬁeld represents the start
+hour of a time.
+N
+SMIN
+0,. . . , 59
+the start minutes associated
+with the start hour
+N
+Table 2: Temporals ﬁelds of a Temporal Unit
+2.4 Examples
+This section provides examples, and a brief discussion about selected ﬁeld representations
+given in Table 1 and Table reftemporal-ﬁelds. See Figure 3.
+14
+
+CONNECTIVE:
+Ex:
+“I can meet Wednesday or Thursday”
+This sentence will produce two TUs, both of which have
+CONNECTIVE set to or
+GEN SPEC:
+Ex:
+“How about Wednesday?”
+Since “Wednesday” is any wednesday, GEN SPEC is set to generic
+Ex:
+“OK, that Wednesday sounds good”
+In this example, the speaker is referring to a speciﬁc Wednesday, and,
+thus, GEN SPEC is set to speciﬁc
+DURATION:
+Ex:
+“I can meet from 2:00 until 4:00”
+DURATION is set to 2 (hours)
+NAME:
+Ex:
+“I can meet next Thursday”
+NAME is set to next
+(It gives speciﬁc information about the time)
+SPECIFIER:
+Ex:
+“The second week in August is good for me”
+In this example, SPECIFIER is set to week
+(NAME = second)
+SDAY VALUE:
+Ex:
+“I can meet Thursday”
+SDAY VALUE is set to part-determined, since the exact Thursday
+cannot be determined.
+Ex:
+“I can meet Thursday the 11th of August”
+SDAY VALUE is set to determined, since
+we have enough information about the Thursday in question
+SHOUR VALUE:
+Ex:
+“How about 4 or so?”
+SHOUR VALUE is set to part-determined,
+since we don’t know the exact time. (In this example, the minute
+information is missing)
+Ex:
+“How about next Thursday”
+SHOUR VALUE is set to undetermined, since no
+information about the time is available.
+Figure 3: Examples of ﬁeld values for temporal units
+15
+
+3. Coverage of Temporal Expressions
+The BNF grammar in Figure 4 describes the core set of the temporal expressions handled
+by our temporal reference resolution system. To simplify the grammar, some variations are
+not speciﬁed. Combinations of the expressions are also allowed, provided that this doesn’t
+lead to contradictory temporal interpretations. This is based on English transcription of
+the Spanish phrases that are covered by the CMU semantic parser. Note that conjunction
+is allowed, although not speciﬁed here. Also, brackets are used for optional components,
+and parentheses are used for grouping items.
+<TEMPORAL EXPRESSION> ::= [<RELATIVE>] <DATE PHRASE>
+| [<RELATIVE>] <TIME PHRASE>
+| [<RELATIVE>] <DATE PHRASE> ["at"] <TIME PHRASE>
+| [<RELATIVE>] <TIME PHRASE> ["on"] <DATE PHRASE>
+| "from" <DATE PHRASE> ("to"|"until") <DATE PHRASE>
+| "from" <TIME PHRASE> ("to"|"until") <TIME PHRASE>
+<RELATIVE> ::= "at" | "around" | "after" | "before" | "on" | "in"
+<DATE PHRASE> ::= <DEICTIC> | <RELATIVE DATE> | <SPECIFIC DATE> | <ABSOLUTE DATE>
+<DEICTIC> ::= "today" | "tomorrow" | "yesterday" | "now"
+<RELATIVE DATE> ::= <SPECIFIER> <PERIOD>
+<SPECIFIC DATE> ::= <DEMONSTRATIVE> <PERIOD>
+<SPECIFIER> ::= "next" | "following" | "coming" | "the rest of"
+| "the end of" | "this" | "this coming" | "all"
+<DEMONSTRATIVE> ::= "that" | "those"
+<PERIOD> ::= "day" | <WEEKDAY> | "week" | <MONTH> | "month" | "morning"
+| "afternoon" | "lunchtime" | "evening" | "night"
+<ABSOLUTE DATE> ::= [<WEEKDAY>] ["the"] <MONTH DATE> ["of" <MONTH>]
+| [<WEEKDAY>] <MONTH> <MONTH DATE>
+| ["in"] <MONTH>
+| ["on"] <WEEKDAY>
+<TIME PHRASE> ::= <HOUR_MIN> | <TIME OF DAY>
+<HOUR_MIN> ::= <HOUR> <MINUTE>
+[<TIME OF DAY>]
+<TIME OF DAY> ::= "am" | "pm" | "in the morning" | "in the afternoon"
+| "lunch" | "night"
+Figure 4: BNF speciﬁcation for system coverage of temporal expressions
+16
+
+arXiv:cs/9901005v1  [cs.CL]  13 Jan 1999
+Journal of Artiﬁcial Intelligence Research 9 (1998) 247-293
+Submitted 5/98; published 11/98
+An Empirical Approach to Temporal Reference Resolution
+Janyce M. Wiebe
+wiebe@cs.nmsu.edu
+Thomas P. O’Hara
+tomohara@cs.nmsu.edu
+Thorsten ¨Ohrstr¨om-Sandgren
+sandgren@lucent.com
+Kenneth J. McKeever
+kmckeeve@redwood.dn.hac.com
+Department of Computer Science and the Computing Research Laboratory
+New Mexico State University
+Las Cruces, NM 88003
+Abstract
+Scheduling dialogs, during which people negotiate the times of appointments, are com-
+mon in everyday life. This paper reports the results of an in-depth empirical investigation
+of resolving explicit temporal references in scheduling dialogs. There are four phases of
+this work: data annotation and evaluation, model development, system implementation
+and evaluation, and model evaluation and analysis. The system and model were developed
+primarily on one set of data, and then applied later to a much more complex data set,
+to assess the generalizability of the model for the task being performed. Many diﬀerent
+types of empirical methods are applied to pinpoint the strengths and weaknesses of the
+approach. Detailed annotation instructions were developed and an intercoder reliability
+study was performed, showing that naive annotators can reliably perform the targeted an-
+notations. A fully automatic system has been developed and evaluated on unseen test data,
+with good results on both data sets. We adopt a pure realization of a recency-based focus
+model to identify precisely when it is and is not adequate for the task being addressed. In
+addition to system results, an in-depth evaluation of the model itself is presented, based
+on detailed manual annotations. The results are that few errors occur speciﬁcally due to
+the model of focus being used, and the set of anaphoric relations deﬁned in the model are
+low in ambiguity for both data sets.
+1. Introduction
+Temporal information is often a signiﬁcant part of the meaning communicated in dialogs
+and texts, but is often left implicit, to be recovered by the listener or reader from the
+surrounding context. When scheduling a meeting, for example, a speaker may ask, “How
+about 2?” expecting the listener to determine which day is being speciﬁed. Recovering
+temporal information implicitly communicated in the discourse is important for many nat-
+ural language processing applications. For example, consider extracting information from
+memos and reports for entry into a database. It would be desirable to enter completely re-
+solved dates and times, rather than incomplete components such as the day or time alone.
+A speciﬁc application for which temporal reference resolution is important is appointment
+scheduling in natural language between human and machine agents (Busemann, Declerck,
+Diagne, Dini, Klein, & Schmeier, 1997). To fully participate, the machine agent must be
+able to understand the many references to times that occur in scheduling dialogs.
+Maintaining the temporal context can aid in other aspects of understanding. For exam-
+ple, Levin et al. (1995) and Ros´e et al. (1995) found that the temporal context, as part of
+c⃝1998 AI Access Foundation and Morgan Kaufmann Publishers. All rights reserved.
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+the larger discourse context, can be exploited to improve various kinds of disambiguation,
+including speech act ambiguity, type of sentence ambiguity, and type of event ambiguity.
+This paper presents the results of an in-depth empirical investigation of temporal ref-
+erence resolution. Temporal reference resolution involves identifying temporal information
+that is missing due to anaphora, and resolving deictic expressions, which must be interpreted
+with respect to the current date. The genre addressed is scheduling dialogs, in which partic-
+ipants schedule meetings with one another. Such strongly task-oriented dialogs would arise
+in many useful applications, such as automated information providers and phone operators.
+A model of temporal reference resolution in scheduling dialogs was developed through an
+analysis of a corpus of scheduling dialogs. A critical component of any method for anaphora
+resolution is the focus model used. It appeared from our initial observations that a recency-
+based model might be adequate. To test this hypothesis, we made the strategic decision
+to limit ourselves to a local, recency-based model of focus, and to analyze the adequacy of
+such a model for temporal reference resolution in this genre. We also limit the complexity
+of our algorithm in other ways. For example, there are no facilities for centering within a
+discourse segment (Sidner, 1979; Grosz, Joshi, & Weinstein, 1995), and only very limited
+ones for performing tense and aspect interpretation. Even so, the methods investigated in
+this work go a long way toward solving the problem.
+From a practical point of view, the method is reproducible and relatively straightforward
+to implement. System results and the detailed algorithm are presented in this paper. The
+model and the implemented system were developed primarily on one data set, and then
+applied later to a much more complex data set to assess the generalizability of the model
+for the task being performed. Both data sets are challenging, in that they both include
+negotiation, contain many disﬂuencies, and show a great deal of variation in how dates and
+times are discussed. However, only in the more complex data set do the participants discuss
+their real life commitments or stray signiﬁcantly from the scheduling task.
+To support the computational work, the temporal references in the corpus were manually
+annotated.
+We developed explicit annotation instructions and performed an intercoder
+reliability study involving naive subjects, with excellent results.
+To support analysis of
+the problem and our approach, additional manual annotations were performed, including
+anaphoric chain annotations.
+The system’s performance on unseen test data from both data sets is evaluated. On
+both, the system achieves a large improvement over the baseline accuracy. In addition,
+ablation (degradation) experiments were performed, to identify the most signiﬁcant aspects
+of the algorithm. The system is also evaluated on unambiguous input, to help isolate the
+contribution of the model itself to overall performance.
+The system is an important aspect of this work, but does not enable direct evaluation
+of the model, due to errors committed by the system in other areas of processing. Thus,
+we evaluate the model itself based on detailed manual annotations of the data. Important
+questions addressed are how many errors are attributable speciﬁcally to the model of focus
+and what kinds of errors they are, and how good is the coverage of the set of anaphoric
+relations deﬁned in the model and how much ambiguity do the relations introduce. The
+analysis shows that few errors occur speciﬁcally due to the model of focus, and the relations
+are low in ambiguity for the data sets.
+248
+
+An Empirical Approach to Temporal Reference Resolution
+The remainder of this paper is organized as follows. The data sets are described in
+Section 2. The problem is deﬁned and the results of an intercoder reliability study are
+presented in Section 3. An abstract model of temporal reference resolution is presented in
+Section 4 and the high-level algorithm is presented in Section 5. Detailed results of the
+implemented system are included in Section 6, and other approaches to temporal reference
+resolution are discussed in Section 7. In the ﬁnal part of the paper, we analyze the challenges
+presented by the dialogs to an algorithm that does not include a model of global focus
+(in Section 8.1), evaluate the coverage, ambiguity, and correctness of the set of anaphoric
+relations deﬁned in the model (in Section 8.2), and assess the importance of the architectural
+components of the algorithm (in Section 8.3). Section 9 is the conclusion.
+There are three online appendices. Online Appendix 1 contains a detailed speciﬁcation
+of the temporal reference resolution rules that form the basis of the algorithm.
+Online
+Appendix 2 gives a speciﬁcation of the input to the algorithm. Online Appendix 3 contains
+a BNF grammar describing the core set of the temporal expressions handled by the system.
+In addition, the annotation instructions, sample dialogs, and manual annotations of the
+dialogs are available on the project web site, http://www.cs.nmsu.edu/˜wiebe/projects.
+2. The Corpora
+The algorithm was primarily developed on a sample of a corpus of Spanish dialogs collected
+under the JANUS project at Carnegie Mellon University (Shum, Levin, Coccaro, Carbonell,
+Horiguchi, Isotani, Lavie, Mayﬁeld, Ros´e, Van Ess-Dykema & Waibel, 1994). These dialogs
+are referred to here as the “CMU dialogs.” The algorithm was later tested on a corpus
+of Spanish dialogs collected under the Artwork project at New Mexico State University
+by Daniel Villa and his students (Wiebe, Farwell, Villa, Chen, Sinclair, Sandgren, Stein,
+Zarazua, & O’Hara, 1996). These are referred to here as the “NMSU dialogs.” In both
+cases, subjects were asked to set up a meeting based on schedules given to them detailing
+their commitments. The NMSU dialogs are face-to-face, while the CMU dialogs are like
+telephone conversations. The participants in the CMU dialogs rarely discuss anything from
+their real lives, and almost exclusively stay on task. The participants in the NMSU dialogs
+embellish the schedule given to them with some of their real life commitments, and often
+stray from the task, discussing topics other than the meeting being planned.
+3. The Temporal Annotations and Intercoder Reliability Study
+Consider the passage shown in Figure 1, which is from the CMU corpus (translated into
+English). An example of temporal reference resolution is that utterance (2) refers to 2-4pm,
+Thursday 30 September.
+Because the dialogs are centrally concerned with negotiating an interval of time in
+which to hold a meeting, our representations are geared toward such intervals. The basic
+representational unit is given in Figure 2. It is referred to throughout as a Temporal Unit
+(TU).
+249
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+Temporal context: Tuesday 28 September
+s1
+1
+On Thursday I can only meet after two pm
+2
+From two to four
+3
+Or two thirty to four thirty
+4
+Or three to ﬁve
+s2
+5
+Then how does from two thirty to four thirty seem to you
+6
+On Thursday
+s1
+7
+Thursday the thirtieth of September
+Figure 1: Corpus Example
+((start-month,
+start-date,
+start-day-of-week,
+start-hour&minute,
+start-time-of-day)
+(end-month,
+end-date,
+end-day-of-week,
+end-hour&minute,
+end-time-of-day))
+Figure 2: The Temporal Unit Representation
+For example, the time speciﬁed1 in “From 2 to 4, on Wednesday the 19th of August” is
+represented as follows:
+((August,
+19,
+Wednesday,
+2,
+pm)
+(August,
+19,
+Wednesday,
+4,
+pm))
+Thus, the information from multiple noun phrases is often merged into a single representa-
+tion of the underlying interval speciﬁed by the utterance.
+Temporal references to times in utterances such as “The meeting starts at 2” are also
+represented in terms of intervals. An issue this kind of utterance raises is whether or not a
+speculated end time of the interval should be ﬁlled in, using knowledge of how long meetings
+usually last. In the CMU data, the meetings all last two hours, by design. However, our
+annotation instructions are conservative with respect to ﬁlling in an end time given a starting
+time (or vice versa), specifying that it should be left open unless something in the dialog
+explicitly suggests otherwise. This policy makes the instructions applicable to a wider class
+of dialogs.
+Weeks, months, and years are represented as intervals starting with the ﬁrst day of the
+interval (for example, the ﬁrst day of the week), and ending with the last day of the interval
+(for example, the last day of the week).
+Some times are treated as points in time (for example, the time speciﬁed in “It is now
+3pm”). These are represented as Temporal Units with the same starting and end times (as
+1. Many terms have been used in the literature for the relation between anaphoric expressions and discourse
+entities.
+For example, Sidner (1983) and Webber (1983) argue that “refer” should be reserved for
+something people do with words, rather than something words do. Webber uses the term “evoke” for
+ﬁrst references to an entity and “access” for subsequent references. Sidner uses the term “specify” for
+the relation between a noun phrase and a discourse entity. We primarily use Sidner’s term, but use
+“refer” in a few contexts in which it seems more natural.
+250
+
+An Empirical Approach to Temporal Reference Resolution
+in Allen, 1984). If just the starting or end time is speciﬁed, all the ﬁelds of the other end of
+the interval are null. And, of course, all ﬁelds are null for utterances that do not contain any
+temporal information. In the case of an utterance that speciﬁes multiple, distinct intervals,
+the representation is a list of Temporal Units (for further details of the coding scheme, see
+O’Hara, Wiebe, & Payne, 1997).
+Temporal Units are also the representations used in the evaluation of the system. That
+is, the system’s answers are mapped from its more complex internal representation (an ILT,
+see Section 5.2) into this simpler vector representation before evaluation is performed.
+The evaluation Temporal Units used to assess the system’s performance were annotated
+by personnel working on the project.
+The training data were annotated by the second
+author of this paper, who also worked on developing the rules and other knowledge used
+in the system. However, the test data were annotated by another project member, Karen
+Payne, who contributed to the annotation instructions and to the integration of the system
+with the Enthusiast system (see below in Section 5.2), but did not contribute to developing
+the rules and other knowledge used in the system.
+As in much recent empirical work in discourse processing (see, for example, Arhenberg,
+Dahlb¨ack, & J¨onsson, 1995; Isard & Carletta, 1995; Litman & Passonneau, 1995; Moser &
+Moore, 1995; Hirschberg & Nakatani, 1996), we performed an intercoder reliability study
+investigating agreement in annotating the times. The main goal in developing annotation
+instructions is to make them precise but intuitive so that they can be used reliably by non-
+experts after a reasonable amount of training (see Passonneau & Litman, 1993; Condon &
+Cech, 1995; Hirschberg & Nakatani, 1996). Reliability is measured in terms of the amount
+of agreement among annotators; high reliability indicates that the encoding scheme is re-
+producible given multiple annotators. In addition, the instructions also serve to document
+the annotations.
+The subjects were three people with no previous involvement in the project. They were
+given the original Spanish and the English translations.
+However, as they have limited
+knowledge of Spanish, in essence they annotated the English translations.
+The subjects annotated two training dialogs according to the instructions. After receiv-
+ing feedback, they annotated four unseen test dialogs. Intercoder reliability was assessed
+using Cohen’s Kappa statistic (κ) (Siegel & Castellan, 1988; Carletta, 1996). Agreement
+for each Temporal Unit ﬁeld (for example, start-month) was assessed independently.
+κ is calculated as follows:
+κ = Pa −Pe
+1 −Pe
+The numerator is the average percentage agreement among the annotators (Pa) less a term
+for expected chance agreement (Pe), and the denominator is 100% agreement less the same
+term for chance agreement (Pe).
+Pa and Pe are calculated as follows (Siegel & Castellan, 1988). Suppose that there are
+N objects, M classes, and K taggers. We have the following deﬁnitions.
+• nij is the number of assignments of object i to category j. Thus, for each i, PM
+j=1 nij =
+K.
+• Cj = PN
+i=1 nij, the total number of assignments of objects to category j.
+251
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+• pj =
+Cj
+N×K , the percentage of assignments to category j (note that N × K is the total
+number of assignments).
+We can now deﬁne Pe:
+Pe =
+M
+X
+j=1
+p2
+j
+The extent of agreement among the taggers concerning the ith object is Si, deﬁned as
+follows. It is the total number of actual agreements for object i, over the maximum possible
+agreement for one object:
+Si =
+PM
+j=1
+ 
+nij
+2
+!
+ 
+K
+2
+!
+Finally, Pa is the average agreement over objects:
+Pa = 1
+N
+N
+X
+i=1
+Si
+κ is 0.0 when the agreement is what one would expect under independence, and it is 1.0
+when the agreement is exact (Hays, 1988). A κ value of 0.8 or greater indicates a high
+level of reliability among raters, with values between 0.67 and 0.8 indicating only moderate
+agreement (Hirschberg & Nakatani, 1996; Carletta, 1996).
+In addition to measuring intercoder reliability, we compared each coder’s annotations
+to the gold standard annotations used to assess the system’s performance. Results for both
+types of agreement are shown in Table 1. The agreement among coders is shown in the
+column labeled κ, and the average pairwise κ values for the coders and the expert who
+performed the gold standard annotations are shown in the column labeled κavg. This was
+calculated by averaging the individual κ scores (which are not shown).
+There is a high level of agreement among annotators in all cases except the end time
+of day ﬁeld, a weakness we are investigating. There is also good agreement between the
+evaluation annotations and the naive coders’ evaluations: with the exception of the time of
+day ﬁelds, κavg indicates high average pairwise agreement between the expert and the naive
+subjects.
+Busemann et al. (1997) also annotate temporal information in a corpus of scheduling
+dialogs. However, their annotations are at the level of individual expressions rather than at
+the level of Temporal Units, and they do not present the results of an intercoder reliability
+study.
+4. Model
+This section presents our model of temporal reference resolution in scheduling dialogs.
+Section 4.1 describes the cases of deictic reference covered and Section 4.2 presents the
+252
+
+An Empirical Approach to Temporal Reference Resolution
+Field
+Pa
+Pe
+κ
+κavg
+start
+Month
+.96
+.51
+.93
+.94
+Date
+.95
+.50
+.91
+.93
+DayofWeek
+.96
+.52
+.91
+.92
+HourMin
+.98
+.82
+.89
+.92
+TimeDay
+.97
+.74
+.87
+.74
+end
+Month
+.97
+.51
+.93
+.94
+Date
+.96
+.50
+.92
+.94
+DayofWeek
+.96
+.52
+.92
+.92
+HourMin
+.99
+.89
+.90
+.88
+TimeDay
+.95
+.85
+.65
+.52
+Table 1: Agreement Among Coders
+day of week
+ր
+ց
+month
+time of day
+−→
+hour&minute
+ց
+ր
+date
+Figure 3: Speciﬁcity Ordering
+anaphoric relations deﬁned. Section 4.3 gives some background information about focus
+models, and then describes the focus model used in this work.
+Anaphora is treated in this paper as a relationship between a Temporal Unit representing
+a time speciﬁed in the current utterance (TUcurrent) and one representing a time speciﬁed
+in a previous utterance (TUprevious).
+The resolution of the anaphor is a new Temporal
+Unit representing the interpretation, in context, of the contributing words in the current
+utterance.
+Fields of Temporal Units are partially ordered as in Figure 3, from least to most speciﬁc.
+The month has the lowest speciﬁcity value.
+In all cases of deictic reference listed in Section 4.1 and all cases of anaphoric reference
+listed in Section 4.2, after the resolvent has been formed, it is subjected to highly accurate,
+obvious inference to produce the ﬁnal interpretation. Examples are ﬁlling in the day of the
+week given the month and the date; ﬁlling in pm for modiﬁers such as “afternoon”; and
+ﬁlling in the duration of an interval from the starting and end points.
+In developing the rules, we found domain knowledge and task-speciﬁc linguistic conven-
+tions to be most useful. However, we observed some cases in the NMSU data for which
+syntactic information could be exploited (Grosz et al., 1995; Sidner, 1979). For example,
+“until” in the following suggests that the ﬁrst utterance speciﬁes an end time.
+253
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+“... could it be until around twelve?”
+“12:30 there”
+A preference for parallel syntactic roles might be used to recognize that the second utterance
+speciﬁes an end time too. We intend to pursue such preferences in future work.
+4.1 Deictic References
+The deictic expressions addressed in this work are those interpreted with respect to the
+dialog date (i.e., “today” in the context of the dialog).
+4.1.1 Simple deictic relation
+A deictic expression such as “tomorrow” or “last week” is interpreted with respect to the
+dialog date. (See rule D-simple in Section 5.3.)
+4.1.2 Frame of reference deictic relation
+A forward time reference is calculated using the dialog date as a frame of reference. Let F
+be the most speciﬁc ﬁeld in TUcurrent less speciﬁc than time of day (e.g., the date ﬁeld).
+The resolvent is the next F after the dialog date, augmented with the ﬁllers of the ﬁelds
+in TUcurrent that are at least as speciﬁc as time of day. (See rule D-frame-of-reference in
+Section 5.3.)
+Following is an example. Assume that the dialog date is Monday 19 August.
+Utterance
+Interpretation
+How about Wednesday at 2?
+2 pm, Wednesday 21 August
+For both this and the frame of reference anaphoric relation, there are subcases for
+whether the starting and/or end times are involved.
+4.2 Anaphoric Relations
+Generally speaking, many diﬀerent kinds of relationships can be established between an
+anaphor and its antecedent. Examples are co-reference (“John saw Mary. He. . .”), part-
+whole (“John bought a car. The engine. . .”), and individual-class (“John bought a truck.
+They are good for hauling. . .”) (see, for example, Webber, 1983). The latter two involve
+bridging descriptions (see, for example, Clark, 1977; Heim, 1982; Poesio, Vieira, & Teufel,
+1997): some reasoning is required to infer the correct interpretation. This section presents
+a set of anaphoric relations that have good coverage for temporal expressions in scheduling
+dialogs (see Section 8.2 for an evaluation).
+Many temporal references involve bridging
+inferences, in the sense that times are calculated by using the antecedent as a frame of
+reference or by modifying a previous temporal interpretation.
+4.2.1 Co-reference anaphoric relation
+The same times are speciﬁed, or TUcurrent is more speciﬁc than TUprevious. The resolvent
+contains the union of the information in the two Temporal Units. (See rule A-co-reference
+in Section 5.3.)
+254
+
+An Empirical Approach to Temporal Reference Resolution
+For example (see also (1)-(2) of the corpus example in Figure 1):
+Utterance
+Interpretation
+How is Tuesday, January 30th?
+How about 2?
+2pm, Tuesday 30 January
+4.2.2 Less-specific anaphoric relation
+TUcurrent includes TUprevious, and TUcurrent is less speciﬁc than TUprevious. Let F be the
+most speciﬁc ﬁeld in TUcurrent. The resolvent contains all of the information in TUprevious
+of the same or lower speciﬁcity than F. (See rule A-less-speciﬁc in Section 5.3.)
+For example (see also (5)-(6) of the corpus example in Figure 1):
+Utterance
+Interpretation
+How about Monday at 2?
+Assume: 2pm, Monday 19 August
+Ok, well, Monday sounds good.
+Monday 19 August
+4.2.3 Frame of reference anaphoric relation
+This is the same as the frame of reference deictic relation above, but the new time is
+calculated with respect to TUprevious instead of the dialog date.
+(See rule A-frame-of-
+reference in Section 5.3.)
+Following are two examples:
+Utterance
+Interpretation
+Would you like to meet Wednesday, August 2nd?
+No, how about Friday at 2.
+2pm, Friday 4 August
+Utterance
+Interpretation
+How about the 3rd week of August?
+Let’s see, Tuesday sounds good.
+Tuesday of the 3rd week in August
+In the ﬁrst example, the day speciﬁed in the ﬁrst utterance is used as the frame of
+reference. In the second example, the beginning day of the interval representing the 3rd
+week of August is used as the frame of reference.
+Note that tense can inﬂuence the choice of whether to calculate a forward or backward
+time from a frame of reference (Kamp & Reyle, 1993), but this is not accounted for because
+there is not much tense variation in the CMU corpus on which the algorithm was developed.
+However, errors can occur because backward calculations are not covered. For example, one
+might mention “Friday” and then “Thursday,” intending “Thursday” to be calculated as
+the day before that Friday, rather than the Thursday of the week following that Friday.
+We are investigating creating a new anaphoric relation to cover these cases.
+4.2.4 Modify anaphoric relation
+TUcurrent is calculated by modifying the interpretation of the previous temporal reference.
+The times diﬀer in the ﬁller of a ﬁeld F, where F is at least as speciﬁc as time of day, but
+255
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+are consistent in all ﬁelds less speciﬁc than F. The resolvent contains the information in
+TUprevious that is less speciﬁc than F together with the information in TUcurrent that is of
+the same or greater speciﬁcity as F. (See rule A-modify in Section 5.3.)
+For example (see also (3)-(5) of the corpus example in Figure 1):
+Utterance
+Interpretation
+Monday looks good.
+Assume: Monday 19 August
+How about 2?
+(co-reference relation) 2pm, Monday 19 August
+Hmm, how about 4?
+(modify relation) 4pm, Monday 19 August
+4.3 Focus Models
+The focus model, or model of attentional state (Grosz & Sidner, 1986), is a model of which
+entities the dialog is most centrally about at each point in the dialog. It determines which
+previously mentioned entities are the candidate antecedents of anaphoric references. As
+such, it represents the role that the structure of the discourse plays in reference resolution.
+We consider three models of attentional state in this paper: (1) the linear-recency model
+(see, for example, the work by Hobbs (1978) and Walker2 (1996)), (2) Grosz and Sidner’s
+(1986) stack-based model, and (3) the graph structured stack model introduced by Ros´e,
+Di Eugenio, Levin, and Van Ess-Dykema (1995).
+Ordered from (1) to (3), the models
+are successively more complex, accounting for increasingly more complex structures in the
+discourse.
+In a linear-recency based model, entities mentioned in the discourse are stored on a
+focus list, ordered by recency. The corresponding structure in the dialog is shown in Figure
+4a: a simple progression of references, uninterrupted by subdialogs.
+In Grosz and Sidner’s stack-based model, the entities in focus in a particular discourse
+segment are stored together in a focus space associated with that segment.
+To handle
+anaphoric references across discourse segments, focus spaces are pushed on and popped oﬀ
+the stack as appropriate to mirror the structure of the discourse. As each new segment is
+recognized, a focus space is created and pushed onto the stack. To interpret an anaphoric
+reference, the entities in the focus space on the top of the stack are considered ﬁrst. However,
+if the current utterance resumes a previous discourse segment, the intervening focus spaces
+are popped oﬀ. This allows anaphoric reference to an earlier entity, even if more recently
+mentioned entities are possible antecedents (for more details, see Grosz & Sidner, 1986).
+Figure 4b illustrates a discourse structure that the stack-based model is designed to handle.
+Suppose that both TU1 and TU2 are possible antecedents of TU3 (for example, suppose they
+are speciﬁed by pronouns that agree in number and gender), but TU2 is in a subsegment
+and is not a correct antecedent of TU3, even though it is mentioned more recently than TU1.
+In the stack-based model, the focus space containing TU2 is popped oﬀthe stack when the
+end of its segment is recognized, thus removing TU2 as a competitor for understanding TU3.
+Following is an example from the NMSU corpus (this is the dialog segment labeled 09-09,
+in row 7, in Figure 10 presented later).
+2. Note that Walker’s model is a cache-based model for which recency is a very important but not unique
+criterion for determining which entities are in the cache.
+256
+
+An Empirical Approach to Temporal Reference Resolution
+TU1
+TU2
+TU3
+TU1
+TU2
+TU3
+TU1
+TU2
+TU3
+TU4
+(a)
+(b)
+(c)
+Figure 4: Discourse Structures Targeted by Diﬀerent Focus Models
+Dialog Date: Monday 10 May
+1
+S1
+Listen, daughter, I was thinking of inviting you to a demonstration on
+interior things, ornaments for decorating your house.
+2
+Uh, I would like to do it at two p.m. Wednesday,
+3
+But I don’t know if you are free at that time or . . .
+TU1
+4
+S2
+Uh, Wednesday, Mom, well
+Resolved to Wednesday, May 12
+5
+You know that,
+TU2,1
+6
+last week uh, I got a job and uh, a full-time job
+Unambiguous deictic; resolved to the week before the dialog date
+TU2,2
+7
+I go in from seven in the morning to ﬁve in the afternoon
+Habitual
+8
+S1
+Oh, maybe it would be better
+TU3
+9
+S2
+Well, I have lunch from twelve to one
+Utterance (4) is needed for the correct interpretation:
+12-1, Wednesday 12 May
+In this passage, utterances (6)-(7) are in a subdialog about S2’s job. To interpret “twelve to
+one” in utterance (9) correctly, one must go back to utterance (4). Incorrect interpretations
+involving the temporal references in (6) and (7) are possible (using the co-reference relation
+with (6) and the modify relation with (7)), so those utterances must be skipped.
+Ros´e et al.’s graph structured stack is designed to handle the more complex structure
+depicted in Figure 4c.
+We will return to this structure later in Section 8.1, when the
+adequacy of our focus model is analyzed.
+Once the candidate antecedents are determined, various criteria can be used to choose
+among them. Syntactic and semantic constraints are common.
+257
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+4.3.1 Our Focus Model for Temporal Reference Resolution
+As mentioned earlier, our algorithm for temporal reference resolution is recency based.
+Speciﬁcally, the focus model is structured as a linear list of all times mentioned so far in
+the current dialog. The list is ordered by recency, and no entries are deleted from the list.
+The candidate antecedents are as follows. For each type of anaphoric relation, the most
+recent Temporal Unit on the focus list that satisﬁes that relation, if there is one, is a
+candidate antecedent.
+The antecedent is chosen from among the candidate antecedents based on a combined
+score reﬂecting a priori preferences for the type of anaphoric relation established, how
+recently the time was mentioned, and how plausible the resulting temporal interpretation
+would be (see Section 5).
+These numerical heuristics contribute to some extent to the
+success of the implementation, but are not critical components of the model, as shown in
+Section 8.3.
+4.4 The Need for Explicit Identiﬁcation of Relations
+As mentioned in the introduction, one goal of this work is to assess the adequacy of a recency-
+based focus model for this task and genre. To be well founded, such evaluations must be
+made with respect to a particular set of relations. For example, the modify relation supports
+a recency-based approach. Consider the following example, reproduced from Section 4.2:
+Utterance
+Interpretation
+(1) Monday looks good.
+Assume: Monday 19 August
+(2) How about 2?
+(co-reference relation) 2pm, Monday 19 August
+(3) Hmm, how about 4?
+(modify relation) 4pm, Monday 19 August
+Because our model includes the modify anaphoric relation, the Temporal Unit in (2) is
+an appropriate antecedent for the one in (3). A model without this relation might require
+(3)’s antecedent to be provided by (1).
+5. Algorithm
+This section presents our high-level algorithm for temporal reference resolution. After an
+overview in Section 5.1, the rule application architecture is described in Section 5.2, and
+the main rules composing the algorithm are given in Section 5.3. The complete set of rules
+is given in detail in Online Appendix 1.
+5.1 Overview
+An important feature of our approach is that the system is forced to choose among pos-
+sibilities only if the resulting interpretations would be inconsistent. If the results for two
+possibilities are consistent, the system merges the results together.
+At a high level, the algorithm operates as follows. There is a set of rules for each of
+the relations presented in Section 4.2. The rules include constraints involving the current
+utterance and another Temporal Unit. In the anaphoric cases, the other Temporal Unit is
+a potential antecedent from the focus list. In the deictic cases, it is the dialog date or a
+258
+
+An Empirical Approach to Temporal Reference Resolution
+.
+.
+.
+.
+.
+.
+.
+.
+.
+Utterancen
+ILT1,1,1
+ILT1,1,p
+Transcription1,1
+Transcription1,m
+Utterance1
+.
+.
+.
+Augmented
+ILT1
+Augmented
+ILTn
+CMU Speech 
+Recognizer
+CMU Semantic
+Parser
+CMU & Artwork
+Discourse Processors
+Figure 5: The Enthusiast System
+later time. For the current temporal expression to be resolved, each rule is applied. For the
+anaphoric rules, the antecedent considered is the most recent one satisfying the constraints.
+All consistent maximal mergings of the results are formed, and the one with the highest
+score is the chosen interpretation.
+5.2 Architecture
+Our system was developed to be integrated into the Enthusiast system developed at Carnegie
+Mellon University (see Qu, Eugenio, Lavie, Levin, & Ros´e, 1996; Levin et al., 1995; Ros´e
+et al., 1995; Lavie & Tomita, 1993). Enthusiast is a speech-to-speech machine translation
+system from Spanish into English. The aspects of the system needed for this paper are
+shown in Figure 5. The system processes all the utterances of a single speaker turn together
+(utterances 1 through n in the ﬁgure). Each spoken Spanish utterance is input to the speech
+recognizer, which produces one or more transcriptions of the utterance. The output of the
+speech recognition system is the input to a semantic parser (Lavie & Tomita, 1993; Levin
+et al., 1995), which produces a representation of the literal meaning of the sentence. This
+representation is called an Interlingual Text (ILT). The output of the semantic parser is
+ambiguous, consisting of multiple ILT representations of the input transcription. All of the
+ILT representations produced for an utterance are input to the discourse processor, which
+produces the ﬁnal, unambiguous representation of that utterance. This representation is
+called an augmented ILT.
+The discourse processor can be conﬁgured to be our system alone, a plan-based discourse
+processor developed at CMU (Ros´e et al., 1995), or the two working together in integrated
+mode.
+The main results, presented in Tables 2 and 3 in Section 6, are for our system
+working alone, taking as input the ambiguous output of the semantic parser. For the CMU
+259
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+dialogs, the input to the semantic parser is the output of the speech recognition system.
+The NMSU dialogs were input to the semantic parser directly in the form of transcriptions.3
+To produce one ILT, the semantic parser maps the main event and its participants into
+one of a small set of case frames (for example, a meet frame or an is busy frame).
+It
+also produces a surface representation of the temporal information in the utterance, which
+mirrors the form of the input utterance. Although the events and states discussed in the
+NMSU data are often outside the coverage of this parser, the temporal information generally
+is not. Thus, the parser provides a suﬃcient input representation for our purposes on both
+sets of data.
+As the Enthusiast system is conﬁgured, the input is presented to our discourse pro-
+cessor in the form of alternative sequences of ILTs. Each sequence contains one ILT for
+each utterance. For example, using the notation in Figure 5, a sequence might consist of
+ILT1,2,3, ILT2,1,1, . . ., ILTn,2,1. Our system resolves the ambiguity in batches. Speciﬁcally,
+it produces a sequence of Augmented ILTs for each input sequence, and then chooses the
+best sequence as its ﬁnal interpretation of the corresponding utterances. In this way, the
+input ambiguity is resolved as a function of ﬁnding the best temporal interpretations of
+the utterance sequences in context (as suggested by Qu et al., 1996). However, the num-
+ber of alternative sequences of ILTs for a set of utterances can be prohibitively large for
+our system. The total number of sequences considered by the system is limited to the top
+125, where the sequences are ordered using statistical rankings provided by the Enthusiast
+system.
+Our method for performing semantic disambiguation is appropriate for this project,
+because the focus is on temporal reference resolution and not on semantic disambiguation.
+However, much semantic ambiguity cannot be resolved on the basis of the temporal discourse
+context alone, so this represents a potential area for improvement in the system performance
+results presented in Section 6. In fact, the Enthusiast researchers have already developed
+better techniques for resolving the semantic ambiguity in these dialogs (Shum et al., 1994).
+Because the ILT representation was designed to support various projects in discourse,
+semantic interpretation, and machine translation, the representation produced by the se-
+mantic parser is much richer than is required for our temporal reference resolution algorithm.
+We recommend that others who implement our algorithm for their application build an in-
+put parser to produce only the necessary temporal information. The speciﬁcation of our
+input is available in Online Appendix 2.
+As described in Section 4.3, a focus list records the Temporal Units that have been
+discussed so far in the dialog. After a ﬁnal Augmented ILT has been created for the current
+utterance, the Augmented ILT and the utterance are placed together on the focus list. In the
+case of utterances that specify more than one Temporal Unit, a separate entity is added for
+each to the focus list, in order of mention. Otherwise, the system architecture is similar to a
+standard production system, with one major exception: rather than choosing the results of
+just one of the rules that ﬁres, multiple results can be merged. This is a ﬂexible architecture
+that accommodates sets of rules targeting diﬀerent aspects of the interpretation.
+3. The semantic parser but not the speech recognizer was available for us to process the NMSU data.
+Presumably, the speech recognizer would not perform as well on the NMSU dialogs as it does on the
+CMU dialogs, since it was trained on the latter.
+260
+
+An Empirical Approach to Temporal Reference Resolution
+Following are the basic steps in processing a single ILT.
+Step 1. The input ILT is normalized. In producing the ILTs that serve as input to our
+system, the semantic parser often represents pieces of information about the same time
+separately, mirroring the surface form of the utterance. This is done in order to capture
+relationships, such as topic-comment relationships, among clauses. Our system needs to
+know which pieces of information are about the same time, but does not need to know
+about the additional relationships. Thus, the system maps the input representation into a
+normalized form, to shield the reasoning component from the idiosyncracies of the input
+representation. A speciﬁcation of the normalized form is given in Online Appendix 2.
+The goal of the normalization process is to produce one Temporal Unit per distinct
+time speciﬁed in the utterance. The normalization program is quite detailed (since it must
+account for the various structures possible in the CMU input ILT), but the core strategy is
+straightforward: it merges information provided by separate noun phrases into one Temporal
+Unit, if it is consistent to do so. Thus, new Temporal Units are created only if necessary.
+Interestingly, few errors result from this process. Following are some examples.
+I can meet Wednesday or Thursday.
+Represented as two disjoint TUs.
+I can meet from 2:00 until 4:00 on the 14th.
+Represented as one TU.
+I can meet Thursday the 11th of August.
+Represented as one TU.
+After the normalization process, highly accurate, obvious inferences are made and added to
+the representation.
+Step 2. All of the rules are applied to the normalized input. The result of a rule application
+is a Partial Augmented ILT—information this rule will contribute to the interpretation of
+the utterance, if it is chosen. This information includes a certainty factor representing an
+a priori preference for the type of anaphoric or deictic relation being established. In the
+case of anaphoric relations, this factor is adjusted by a term representing how far back on
+the focus list the antecedent is (in the anaphoric rules in Section 5.3, the adjustment is
+represented by distance factor in the calculation of the certainty factor CF). The result of
+this step is the set of Partial Augmented ILTs produced by the rules that ﬁred (i.e., those
+that succeeded).
+In the case of multiple Temporal Units in the input ILT, each rule is applied as follows.
+If the rule does not access the focus list, the rule is applied to each Temporal Unit. A list
+of Partial Augmented ILTs is produced, containing one entry for each successful match,
+retaining the order of the Temporal Units in the original input. If the rule does access the
+focus list, the process is the same, but with one important diﬀerence. The rule is applied
+to the ﬁrst Temporal Unit. If it is successful, then the same focus list entity used to apply
+the rule to this Temporal Unit is used to interpret the remaining Temporal Units in the
+list. Thus, all the anaphoric temporal references in a single utterance are understood with
+respect to the same focus list element. So, for example, the anaphoric interpretations of
+the temporal expressions in “I can meet Monday or Tuesday” both have to be understood
+with respect to the same entity in the focus list.
+When accessing entities on the focus list, an entry for an utterance that speciﬁes mul-
+tiple Temporal Units may be encountered. In this case, the Temporal Units are simply
+261
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+accessed in order of mention (from most to least recent).
+Step 3. All maximal mergings of the Partial Augmented ILTs are created. Consider a
+graph in which the Partial Augmented ILTs are the vertices, and there is an edge between
+two Partial Augmented ILTs if they are compatible. Then, the maximal cliques of the graph
+(i.e., the maximal complete subgraphs) correspond to the maximal mergings. Each maximal
+merging is then merged with the normalized input ILT, resulting in a set of Augmented ILTs.
+Step 4. The Augmented ILT chosen is the one with the highest certainty factor. The
+certainty factor of an Augmented ILT is calculated as follows. First, the certainty factors
+of the constituent Partial Augmented ILTs are summed. Then, critics are applied to the
+resulting Augmented ILT, lowering the certainty factor if the information is judged to be
+incompatible with the dialog state.
+The merging process might have yielded additional opportunities for making obvious
+inferences, so this process is performed again, to produce the ﬁnal Augmented ILT.
+To process the alternative input sequences, a separate invocation to the core system
+is made for each sequence, with the sequence of ILTs and the current focus list as input.
+The result of each call is a sequence of Augmented ILTs, which are the system’s best
+interpretations of the input ILTs, and a new focus list, representing the updated discourse
+context corresponding to that sequence of interpretations. The system assigns a certainty
+factor to each sequence of Augmented ILTs, speciﬁcally, the sum of the certainty factors of
+the constituents. It chooses the sequence with the highest certainty factor, and updates the
+focus list to the focus list calculated for that sequence.
+5.3 Temporal Reference Resolution Rules
+Figure 6 presents the main temporal resolution rules, one for each of the cases described in
+Sections 4.1 and 4.2. In the complete set of rules, given in Online Appendix 1, many are
+broken down into subcases involving, for example, the end times or starting times.
+The rules apply to individual Temporal Units. They return a certainty factor, and either
+a more fully speciﬁed Temporal Unit or an empty structure indicating failure.
+Many of the rules calculate temporal information with respect to a frame of reference,
+using a separate calendar utility. Following are functions and conventions used in Figure 6.
+1. next(TimeV alue, RF): returns the next timeV alue that follows reference frame RF.
+For example, next(Monday, [. . .Friday, 19th,. . .]) = Monday, 22nd.
+2. resolve deictic(DT, RF): resolves the deictic term DT with respect to the reference
+frame RF.
+3. merge(TU1, TU2): if Temporal Units TU1 and TU2 contain no conﬂicting ﬁelds,
+returns a Temporal Unit containing all of the information in the two units; otherwise
+returns {}.
+4. merge upper(TU1, TU2): similar to the previous function, except that the only
+ﬁelds from TU1 that are included are those that are of the same or less speciﬁcity as
+the most speciﬁc ﬁeld in TU2.
+262
+
+An Empirical Approach to Temporal Reference Resolution
+5. speciﬁcity(TU): returns the speciﬁcity of the most speciﬁc ﬁeld in TU.
+6. most speciﬁc(TU): returns the most speciﬁc ﬁeld in TU.
+7. starting ﬁelds(TU): returns a list of starting ﬁeld names for those in TU having
+non-null values.
+8. structure→component: returns the named component of the structure.
+9. conventions: Values are in bold face and variables are in italics. TU is the current
+Temporal Unit being resolved. TodaysDate is a representation of the dialog date.
+FocusList is the list of discourse entities from all previous utterances.
+The algorithm does not cover some subcases of relations concerning the end times. For
+instance, rule D-frame-of-reference covers only the starting-time case of the frame of refer-
+ence deictic relation. An example of an end-time case that is not handled is the utterance
+“Let’s meet until Thursday,” under the meaning that they should meet from today through
+Thursday. This is an area for future work.
+6. Results
+As mentioned in Section 3, the main results are based on comparisons against human anno-
+tation of the held out test data. The results are based on straight ﬁeld-by-ﬁeld comparisons
+of the Temporal Unit representations introduced in Section 3. To be considered correct,
+information must not only be right, but it also has to be in the right place.
+Thus, for
+example, “Monday” correctly resolved to Monday 19 August, but incorrectly treated as a
+starting rather than an end time, contributes 3 errors of omission and 3 errors of commission
+(and receives no credit for the correct date).
+Detailed results for the test sets are presented in this section, starting with results for
+the CMU data (see Table 2). Accuracy measures the extent to which the system produces
+the correct answer, while precision measures the extent to which the system’s answers
+are correct (see the formulas in Table 2). For each component of the extracted temporal
+structure, the system’s correct and incorrect answers were counted. Since null values occur
+quite often, these counts exclude cases in which the system’s answer, the correct answer,
+or both answers are null. Those cases were counted separately. Note that each test set
+contains three complete dialogs with an average of 72 utterances per dialog.
+These results show that the system achieves an overall accuracy of 81%, which is signif-
+icantly better than the baseline accuracy (deﬁned below) of 43%. In addition, the results
+show a high precision of 92%. In some of the individual cases, however, the results could
+be higher due to several factors. For example, our system development was inevitably fo-
+cused more on some ﬁelds than others. An obvious area for improvement is the system’s
+processing of the time of day ﬁelds. Also, note that the values in the Mis column are higher
+than those in the Ext column. This reﬂects the conservative coding convention, mentioned
+in Section 3, for ﬁlling in unspeciﬁed end points.
+The accuracy and precision ﬁgures for the hour & minute and time of day ﬁelds are very
+high because a large proportion of them are null. We include null correct answers in our
+263
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+Rules for deictic relations
+Rule D-simple: All cases of the simple deictic relation.
+if there is a deictic term, DT, in TU then
+return ⟨0.9, merge(TU, resolve deictic(DT, TodaysDate))⟩
+Rule D-frame-of-reference: The starting-time cases of the frame of reference deictic relation.
+if (most speciﬁc(starting ﬁelds(TU)) < time of day) then
+Let f be the most speciﬁc ﬁeld in starting ﬁelds(TU)
+return ⟨0.4, merge(TU, next(TU→f, TodaysDate))⟩
+Rules for anaphoric relations
+Rule A-co-reference: All cases of the co-reference anaphoric relation.
+for each non-empty Temporal Unit TUfl from FocusList (starting with most recent)
+if speciﬁcity(TUfl) ≤speciﬁcity(TU) and not empty merge(TUfl, TU) then
+CF = 0.8 −distance factor(TUfl, FocusList)
+return ⟨CF, merge(TUfl, TU)⟩
+Rule A-less-speciﬁc: All cases of the less-speciﬁc anaphoric relation.
+for each non-empty Temporal Unit TUfl from FocusList (starting with most recent)
+if speciﬁcity(TUfl) > speciﬁcity(TU) and not empty merge upper(TUfl, TU) then
+CF = 0.5 −distance factor(TUfl, FocusList)
+return ⟨CF, merge upper(TUfl, TU)⟩
+Rule A-frame-of-reference: Starting-time case of the frame of reference anaphoric relation.
+if (most speciﬁc(starting ﬁelds(TU)) < time of day) then
+for each non-empty Temporal Unit TUfl from FocusList (starting with most recent)
+if speciﬁcity(TU) ≥speciﬁcity(TUfl) then
+Let f be the most speciﬁc ﬁeld in starting ﬁelds(TU)
+CF = 0.6 −distance factor(TUfl, FocusList)
+return ⟨CF, merge(TU, next(TU→f, TUfl→start date))⟩
+Rule A-modify: All cases of the modify anaphoric relation.
+if (speciﬁcity(TU) ≥time of day) then
+for each non-empty Temporal Unit TUfl from FocusList (starting with most recent)
+if speciﬁcity(TU) ≥speciﬁcity(TUfl) and speciﬁcity(TUfl) ≥time of day then
+if not empty merge upper(TUfl, TU) then
+CF = 0.5 −distance factor(TUfl, FocusList)
+return ⟨CF, merge upper(TUfl, TU)⟩
+Figure 6: Main Temporal Resolution Rules
+264
+
+An Empirical Approach to Temporal Reference Resolution
+Label
+Cor
+Inc
+Mis
+Ext
+Nul
+Poss
+Act
+BaseAcc
+Acc
+Prec
+start
+Month
+49
+3
+7
+3
+0
+59
+55
+0.338
+0.831
+0.891
+Date
+48
+4
+7
+3
+0
+59
+55
+0.403
+0.814
+0.873
+DayofWeek
+46
+6
+7
+3
+0
+59
+55
+0.242
+0.780
+0.836
+HourMin
+18
+0
+7
+0
+37
+62
+55
+0.859
+0.887
+1.000
+TimeDay
+9
+0
+18
+0
+35
+62
+44
+0.615
+0.710
+1.000
+end
+Month
+48
+3
+7
+1
+3
+61
+55
+0.077
+0.836
+0.927
+Date
+47
+5
+6
+3
+1
+59
+56
+0.048
+0.814
+0.857
+DayofWeek
+45
+7
+6
+3
+1
+59
+56
+0.077
+0.780
+0.821
+HourMin
+9
+0
+9
+0
+44
+62
+53
+0.862
+0.855
+1.000
+TimeDay
+4
+0
+13
+1
+44
+61
+49
+0.738
+0.787
+0.980
+Overall
+323
+28
+87
+17
+165
+534
+604
+0.428
+0.809
+0.916
+Legend
+Cor(rect):
+System and key agree on non-null value
+Inc(orrect):
+System and key diﬀer on non-null value
+Mis(sing):
+System has null value for non-null key
+Ext(ra):
+System has non-null value for null key
+Nul(l):
+Both system and key give null answer
+Poss(ible):
+Correct + Incorrect + Missing + Null
+Act(ual):
+Correct + Incorrect + Extra + Null
+Base(line)Acc(uracy):
+Baseline accuracy (input used as is)
+Acc(uracy):
+% Key values matched correctly ((Correct + Null)/Possible)
+Prec(ision):
+% System answers matching the key ((Correct + Null)/Actual)
+Table 2: Evaluation of System on CMU Test Data
+265
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+Label
+Cor
+Inc
+Mis
+Ext
+Nul
+Poss
+Act
+BaseAcc
+Acc
+Prec
+start
+TimeDay
+9
+0
+18
+0
+35
+62
+44
+0.615
+0.710
+1.000
+Month
+55
+0
+23
+5
+3
+63
+81
+0.060
+0.716
+0.921
+Date
+49
+6
+23
+5
+3
+63
+81
+0.060
+0.642
+0.825
+DayofWeek
+52
+3
+23
+5
+3
+63
+81
+0.085
+0.679
+0.873
+HourMin
+34
+3
+7
+6
+36
+79
+80
+0.852
+0.875
+0.886
+TimeDay
+18
+8
+31
+2
+27
+55
+84
+0.354
+0.536
+0.818
+end
+Month
+55
+0
+23
+5
+3
+63
+81
+0.060
+0.716
+0.921
+Date
+49
+6
+23
+5
+3
+63
+81
+0.060
+0.642
+0.825
+DayofWeek
+52
+3
+23
+5
+3
+63
+81
+0.060
+0.679
+0.873
+HourMin
+28
+2
+13
+1
+42
+73
+85
+0.795
+0.824
+0.959
+TimeDay
+9
+2
+32
+5
+38
+54
+81
+0.482
+0.580
+0.870
+Overall
+401
+33
+221
+44
+161
+639
+816
+0.286
+0.689
+0.879
+Table 3: Evaluation of System on NMSU Test Data
+ﬁgures because such answers often reﬂect valid decisions not to ﬁll in explicit values from
+previous Temporal Units.
+Table 3 contains the results for the system on the NMSU data. It shows that the system
+performs respectably, with 69% accuracy and 88% precision, on the more complex set of
+data. The precision is still comparable, but the accuracy is lower, since more of the entries
+are left unspeciﬁed (that is, the ﬁgures in the Mis column in Table 3 are higher than in
+Table 2). Furthermore, the baseline accuracy (29%) is almost 15% lower than the one for
+the CMU data (43%), supporting the claim that this data set is more challenging.
+The baseline accuracies for the test data sets are shown in Table 4.
+These values
+were derived by disabling all the rules and evaluating the input itself (after performing
+normalization, so that the evaluation software could be applied). Since null values are the
+most frequent for all ﬁelds, this is equivalent to using a naive algorithm that selects the
+most frequent value for each ﬁeld. Note that in Tables 2 and 3, the baseline accuracies for
+the end month, date, and day of week ﬁelds are quite low because the coding convention
+calls for ﬁlling in these ﬁelds, even though they are not usually explicitly speciﬁed. In this
+case, an alternative baseline would have been to use the corresponding starting ﬁeld. This
+has not been calculated, but the results can be approximated by using the baseline ﬁgures
+for the starting ﬁelds.
+The rightmost column of Table 4 shows that there is a small amount of error in the
+input representation. This ﬁgure is 1 minus the precision of the input representation (after
+normalization). Note, however, that this is a close but not exact measure of the error in
+the input, because there are a few cases of the normalization process committing errors
+and a few of it correcting errors. Recall that the input is ambiguous; the ﬁgures in Table
+4 are based on the system selecting the ﬁrst ILT in each case. Since the parser orders the
+266
+
+An Empirical Approach to Temporal Reference Resolution
+Set
+Cor
+Inc
+Mis
+Ext
+Nul
+Act
+Poss
+Acc
+Input Error
+cmu
+84
+6
+360
+10
+190
+290
+640
+0.428
+0.055
+nmsu
+65
+3
+587
+4
+171
+243
+826
+0.286
+0.029
+Table 4: Baseline Figures for Both Test Sets
+seen/
+cmu/
+ambiguous, uncorrected/
+Dialogs
+Utterances
+Acc
+Prec
+unseen
+nmsu
+unambiguous, partially corrected
+seen
+cmu
+ambiguous, uncorrected
+12
+659
+0.883
+0.918
+seen
+cmu
+unambiguous, partially corrected
+12
+659
+0.914
+0.957
+unseen
+cmu
+ambiguous, uncorrected
+3
+193
+0.809
+0.916
+seen
+nmsu
+ambiguous, uncorrected
+4
+358
+0.679
+0.746
+seen
+nmsu
+unambiguous, partially corrected
+4
+358
+0.779
+0.850
+unseen
+nmsu
+ambiguous, uncorrected
+3
+236
+0.689
+0.879
+Table 5: Overall Results
+ILTs based on a measure of acceptability, this choice is likely to have the relevant temporal
+information.
+The above results are for the system taking ambiguous semantic representations as input.
+To help isolate errors due to our model, the system was also evaluated on unambiguous,
+partially corrected input for all the seen data (the test sets were retained as unseen test
+data). The input is only partially corrected because some errors are not feasible to correct
+manually, given the complexity of the input representation.
+The overall results are shown in the Table 5. The table includes the results presented
+earlier in Tables 2 and 3, to facilitate comparison. In the CMU data set, there are twelve
+dialogs in the training data and three dialogs in a held out test set. The average length of
+each dialog is approximately 65 utterances. In the NMSU data set, there are four training
+dialogs and three test dialogs.
+In both data sets, there are noticeable gains in performance on the seen data going from
+ambiguous to unambiguous input, especially for the NMSU data. Therefore, the semantic
+ambiguity and input errors contribute signiﬁcantly to the system’s errors.
+Some challenging characteristics of the seen NMSU data are vast semantic ambiguity,
+numbers mistaken by the input parser for dates (for example, phone numbers are treated
+as dates), and the occurrences of subdialogs.
+Most of the the system’s errors on the unambiguous data are due to parser error, errors
+in applying the rules, errors in mistaking anaphoric references for deictic references (and
+vice versa), and errors in choosing the wrong anaphoric relation. As will be shown in Section
+8.1, our approach handles focus eﬀectively, so few errors can be attributed to the wrong
+entities being in focus.
+267
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+7. Other Work on Temporal Reference Resolution
+To our knowledge, there are no other published results on unseen test data of systems
+performing similar temporal reference resolution tasks.
+Ros´e et al. (1995, Enthusiast),
+Alexandersson et al. (1997, Verbmobil), and Busemann et al. (1997, Cosma) describe other
+recent natural language processing systems that resolve temporal expressions in scheduling
+dialogs. Ros´e et al. also address focus issues; we compare our work to theirs in detail in
+Section 8.1. All of the systems share certain features, such as the use of a calendar utility
+to calculate dates, a speciﬁcity ordering of temporal components (such as in Figure 3), and
+a record of the temporal context.
+However, all of the other systems perform temporal reference resolution as part of their
+overall processing, in service of solving another problem such as speech act resolution. None
+of them lays out a detailed approach or model for temporal reference resolution, and none
+gives results of system performance on any temporal interpretation tasks.
+Kamp and Reyle (1993) address representational and processing issues in the interpre-
+tation of temporal expressions. However, they do not implement their ideas or present the
+results of a working system. They do not attempt coverage of a data set, or present a
+comprehensive set of relations, as we do, but consider only speciﬁc cases that are interest-
+ing for their Discourse Representation Theory. In addition, they do not address the issues
+of discourse structure and attentional state focused on here. For example, they recognize
+that references such as “on Sunday” may have to be understood with respect to a frame of
+reference. But they do not address how the frame of reference is chosen in context, so do
+not address the question of what type of focus model is required.
+Note that temporal reference resolution is a diﬀerent problem from tense and aspect in-
+terpretation in discourse (as addressed in, for example, Webber, 1988; Song & Cohen, 1991;
+Hwang & Schubert, 1992; Lascarides, Asher, & Oberlander, 1992; Kameyama, Passonneau,
+& Poesio, 1993). These tasks are brieﬂy reviewed here to clarify the diﬀerences. Temporal
+reference resolution is determining what time is being explicitly speciﬁed by noun phrases
+that are temporal referring expressions (e.g., “Monday” resolved to Monday 19 August).
+Tense and aspect interpretation involves determining implicit information about the states
+and events speciﬁed by verb phrases (e.g., that the kissing event speciﬁed in “He had kissed
+her” happened before some reference time in the past). While it could aid in performing
+temporal reference resolution, we are not addressing tense and aspect interpretation itself.
+Scheduling dialogs, or scheduling subdialogs of other kinds of dialogs, predominantly
+employ the present and future tenses, due to the nature of the task. As discussed further
+below in Section 8.1, a primary way that tracking the tense and aspect would aid in tem-
+poral reference resolution would be to recognize discourse segments that depart from the
+scheduling dialog or subdialog. In addition, Kamp and Reyle (1993) address some cases
+in which tense and aspect, temporal nouns, and temporal adverbs interact to aﬀect the
+temporal interpretation. We intend to pursue these ideas in future work.
+8. Analysis
+The implementation is an important proof of concept. However, as discussed in Section 6,
+various kinds of errors are reﬂected in the results; many are not directly related to discourse
+268
+
+An Empirical Approach to Temporal Reference Resolution
+# TUs
+# TUs speciﬁed anaphorically
+CMU
+196
+167
+NMSU
+96
+71
+Total
+292
+238
+Figure 7: Counts of Temporal Unit References in the Training Data
+processing or temporal reference resolution. Examples are (1) completely null inputs, when
+the semantic parser or speech recognizer fails, (2) numbers mistaken as dates, and (3)
+failures to recognize that a relation can be established, due to a lack of speciﬁc domain
+knowledge.
+To evaluate the algorithm itself, in this section we separately evaluate the components
+of our method for temporal reference resolution. Sections 8.1 and 8.2 assess the key con-
+tributions of this work: the focus model (in Section 8.1) and the deictic and anaphoric
+relations (in Section 8.2). These evaluations required us to perform extensive additional
+manual annotation of the data. In order to preserve the test dialogs as unseen test data,
+these annotations were performed on the training data only. In Section 8.3, we isolate the
+architectural components of our algorithm, such as the certainty factor calculation and the
+critics, to assess the eﬀects they have on performance.
+8.1 Evaluation of the Focus Model
+The algorithm presented here does not include a mechanism for recognizing the global
+structure of the discourse, such as in the work of Grosz and Sidner (1986), Mann and
+Thompson (1988), Allen and Perrault (1980), and in descendent work. Recently in the
+literature, Walker (1996) argues for a more linear-recency based model of attentional state
+(though not that discourse structure need not be recognized), while Ros´e et al. (1995)
+argue for a more complex model of attentional state than is represented in most current
+computational theories of discourse.
+Many theories that address how attentional state should be modeled have the goal of
+performing intention recognition as well.
+We investigate performing temporal reference
+resolution directly, without also attempting to recognize discourse structure or intentions.
+We assess the challenges the data present to our model when only this task is attempted.
+The total number of Temporal Units and the number of them speciﬁed by anaphoric
+noun phrases in the two training data sets are given in Figure 7.4
+There are diﬀerent
+units that could be counted, from the number of temporal noun phrases to the number of
+distinct times referred to in the dialog. Here, we count the entities that must be resolved
+by a temporal reference resolution algorithm, i.e., the number of distinct temporal units
+speciﬁed in each sentence, summed over all sentences.
+Operationally, this is a count of
+Temporal Units after the normalization phase, i.e., after Step 1 in Section 5.2. This is the
+unit considered in the remainder of this paper.
+4. The anaphoric counts include the cases in which both deictic and anaphoric interpretations yield the
+correct result.
+269
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+To support the evaluation presented in this section, antecedent information was man-
+ually annotated in the training data. For each Temporal Unit speciﬁed by an anaphoric
+noun phrase, all of the antecedents that yield the correct interpretation under one of the
+anaphoric relations were identiﬁed, except that, if both TUi and TUj are appropriate an-
+tecedents, and one is an antecedent of the other, only the more recent one is included. Thus,
+only the heads of the anaphoric chains existing at that point in the dialog are included. In
+addition, competitor discourse entities were also identiﬁed, i.e., previously mentioned Tem-
+poral Units for which some relation could be established, but the resulting interpretation
+would be incorrect. Again, only Temporal Units at the head of an anaphoric chain were
+considered. To illustrate these annotations, Figure 8 shows a graph depicting anaphoric
+chain annotations of an NMSU dialog (dialog 9). In the ﬁgure, solid lines link the correct
+antecedents, dotted lines show competitors, and edges to nowhere indicate deictics.
+8.1.1 Cases in which the immediately preceding time is not an appropriate
+antecedent
+The main purpose of a focus model is to make an appropriate set of discourse entities
+available as candidate antecedents at each point in the discourse. As described above in
+Section 4.3, Grosz and Sidner’s model captures situations in which entities should not
+be available as candidate antecedents, and Ros´e et al. identify situations in which Grosz
+and Sidner’s model may incorrectly eliminate entities from consideration (i.e., dialogs with
+multiple threads).
+The potential challenge for a recency-based model like ours is that
+entities may be available as candidate antecedents that should not be. An entity E may
+occur to which an anaphoric relation could be established, but an entity mentioned before
+E is needed for the correct interpretation. (From another perspective, E yields the wrong
+interpretation but cannot be ruled out as a possible antecedent.) To assess the magnitude
+of this problem for our method, in this section we characterize the cases in which the most
+recent entity is not an appropriate antecedent.
+Before proceeding, we note that there is only one situation in which our model incorrectly
+makes a needed entity unavailable. Recall from Section 4.3 that, for a particular relation
+R, only the most recent Temporal Unit for which R can be established is a candidate (call
+it C). The problem arises when the correct interpretation requires that that same relation
+R be established with an entity mentioned earlier than C. This is a problem because the
+earlier time is not a candidate. If such cases were to occur in the training data, they would
+have been found by the analysis presented below. However, none were found.
+Based on the anaphoric chain annotations, we identiﬁed how far back on the focus list
+one must go to ﬁnd an antecedent that is appropriate according to the model. An antecedent
+is considered to be appropriate according to the model if there exists a relation deﬁned in
+the model such that, when established between the current utterance and the antecedent,
+it yields the correct interpretation. Note that we allow antecedents for which the anaphoric
+relation would be a trivial extension of one of the relations explicitly deﬁned in the model.
+For example, phrases such as “after lunch” should be treated as if they are simple times
+of day under the co-reference and modify anaphoric relations, but, as explicitly deﬁned,
+those relations do not cover such phrases. For example, given Wednesday 14 April, the
+reference “after lunch” should be interpreted as after lunch, Wednesday 14 April under the
+270
+
+An Empirical Approach to Temporal Reference Resolution
+1 (s1):  Listen, daughter, I was thinking of inviting you
+to a demonstration on interior things, ornaments for decorating your house
+2 (s1):  Uh, I would like to do it at two p.m. Wednesday,
+((wed, may, 12, 2, afternoon), (wed, may, 12, null, null))
+3 (s1):  But I don’t know if you are free at that time
+or if we could change it to fit your schedule
+4 (s2):  Uh, Wednesday, Mom, well. 
+((wed, may, 12, null, null), (wed, may, 12, null, null))
+less
+specific
+5 (s2):  You know that la..., la....
+7 (s2):  I go in from seven in the morning to five in the afternoon.
+((null, null, null, 7, morning), (null, null, null, 5, afternoon))
+co-reference
+9 (s2):  Well, I have lunch from twelve to one.
+((wed, may, 12, 12, afternoon), (wed, may, 12, 1, afternoon))
+co-reference
+6 (s2):   last week uh, I got a job and uh, a full-time job.
+((mon, may, 3, null, null), (fri, may, 7, null, null))
+co-reference
+8 (s1):  Oh, maybe it would be better...
+modify
+12 (s1):  What would you think if we changed it to Saturday?
+((sat, may, 15, null, null), (sat, may, 15, null, null))
+co-reference
+10 (s2):  But I don’t know if you could meet at that time
+since Dad’s lunch hour is at the same time.
+((wed, may, 12, 12, afternoon), (wed, may, 12, 1, afternoon))
+co-reference
+11 (s2):  So I think that...
+frame of
+reference
+Figure 8: Anaphoric Annotations of Part of NMSU Dialog 9.
+271
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+TU1
+TU2
+TU3
+Figure 9: Structure Challenging the Recency Model.
+co-reference relation. Similarly, given 10am, Wednesday, 14 April, “After lunch” in “After
+lunch would be better” should be interpreted as after lunch, Wednesday 14 April under the
+modify anaphoric relation.
+The results are striking. Between the two sets of training data, there are only nine
+anaphoric temporal references for which the immediately preceding Temporal Unit is not
+an appropriate antecedent, 3/167 = 1.8% in the CMU data, and 6/71 = 8.4% in the NMSU
+data.
+Figure 9 depicts the structure involved in all nine cases. TU3 represents the anaphoric
+reference for which the immediately preceding Temporal Unit is not an appropriate an-
+tecedent. TU1 represents the most recent appropriate antecedent, and TU2 represents the
+intervening Temporal Unit or Units. The ellipses represent any intervening non-temporal
+utterances.
+Figure 10 characterizes the nine cases along a number of dimensions. To isolate the issues
+addressed, it was assumed in deriving these ﬁgures that the dialog is correctly interpreted
+up to and including TU1.
+In three of the cases (rows 2, 4, and 9, labeled 07-63, 08-57, 10-55, respectively), there
+is a correct deictic interpretation of TU3 under our model, in addition to the correct (with
+antecedent TU1) and incorrect (with antecedent TU2) anaphoric interpretations.
+Column 1 of Figure 10 shows that, in all three cases in the CMU data and in two cases
+in the NMSU data, the second most recently mentioned Temporal Unit is an appropri-
+ate antecedent.
+In the remaining four cases, the third most recently mentioned time is
+appropriate.
+In three of the cases, the references represented by TU2 in Figure 9 are in subdialogs oﬀ
+the main topic and scheduling task (indicated as “Yes” in column 2). All of these subdialogs
+are in the NMSU data. In four cases, the TU2 references are in subsegments that are directly
+in service of the main task (indicated as “No” in column 2), and in two cases, we judged
+them to be borderline.
+Column 3 characterizes the type of reference the TU2 references are. The two marked
+“Anaphoric, main task” are speciﬁc references to times that involve the main scheduling
+272
+
+An Empirical Approach to Temporal Reference Resolution
+1
+2
+3
+4
+5
+6
+Distance to
+Subdialog?
+Type of T U2
+T U2
+T U2 a
+Potential
+most recent
+Correct?
+Competitor?
+Cumulative
+appropriate
+Errors
+antecedent
+1 (07-37)
+2
+No
+Anaphoric,
+Yes
+Yes
+21
+CMU
+main task
+2 (07-63)
+2
+No
+Habitual
+No
+Yes
+0
+CMU
+3 (15-31)
+2
+No
+Anaphoric,
+Yes
+Yes
+4
+CMU
+main task
+4 (08-57)
+2
+Yes
+Reference
+No
+Yes
+2 minor
+NMSU
+outside dialog
+5 (08-66)
+3
+Yes
+1 deictic
+Yes
+Yes
+10
+NMSU
+1 habitual
+No
+Yes
+(worst case)
+6 (09-39)
+2
+No
+habitual
+No
+No
+0
+NMSU
+7 (09-09)
+3
+Yes
+1 deictic
+Yes
+Yes
+4
+NMSU
+1 habitual
+No
+(worst case)
+8 (09-45)
+3
+Borderline
+both habitual
+No
+Yes
+6
+NMSU
+9 (10-55)
+3
+Borderline
+both habitual
+No
+Yes
+3
+NMSU
+Figure 10: Summary of Cases in Which Most Recent TU is not an Appropriate Antecedent
+273
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+Dialog Date: Monday 10 May
+TU1:
+It’s just that . . . this Thursday [Thursday May 13] is our second wedding
+anniversary and I don’t know what to do.
+⟨31 non-temporal utterances about what to cook ⟩
+Did you go with my mother?
+TU2:
+With my mother? Yes. I went at around six in the morning.
+Did you and Maura go for a walk?
+No, no we didn’t.
+Hmmmmm. We got lazy.
+Ah Claudia.
+TU3
+Well, yes. Listen Lily. What do you think if we see each other on,
+on Thursday at six and I, at six?
+Figure 11: Dialog Segment of the Case in Row 4 in Figure 10
+task.
+The subdialog marked “Reference outside dialog” (row 4, label 8-57) is shown in
+Figure 11.
+The main topic of this dialog is a party for the anniversary mentioned in TU1. The
+TU2 reference, “around six in the morning,” involves the participants’ shared knowledge
+of an event that is not related to the scheduling task. The only interpretation possible in
+our model is six in the morning on the day speciﬁed in the TU1 reference, while in fact the
+participants are referring to six in the morning on the dialog date. (There is currently no
+coverage in our model for deictic references that mention only a time of day.) Thus, the
+interpretation of the TU2 reference is incorrect, as indicated in column 4.
+Many of the TU2 references are habitual (marked “habitual” in column 3 of Figure 10).
+For example, the participants discuss their usual work schedules, using utterances such as
+“during the week I work from 3 to 6.” Since there is no coverage of habituals in our model,
+the interpretations of all of the TU2 habitual references are incorrect, as indicated in column
+4.
+We now turn to column 5, which asks a key question: is TU2 a competitor? TU2 is a
+competitor if there is some relation in the model that can be established between TU3 and
+TU2. In the cases in which TU2 represents multiple utterances (namely, the ﬁfth, seventh,
+eighth, and ninth rows of Figure 10), “yes” is indicated in column 5 if an interpretation
+of the segment involving both of the TU2 references is possible. Cumulative error (column
+6) can be non-zero only if the entry in column 5 is “Yes”: if the TU2 references are not
+competitors, they cannot be antecedents under our model, so they cannot prevent TU3 from
+being recognized as a correct antecedent.
+It is important to note that the incorrect interpretation of TU3 and the cumulative errors
+indicated in column 6 are only potential errors. In all cases in Figure 10, the correct inter-
+pretation of TU3 involving TU1 is available as a possible interpretation. What is shown in
+column 6 is the number of cumulative errors that would result if an interpretation involving
+TU2 were chosen over a correct interpretation involving TU1. In many cases, the system’s
+answer is correct because the (correct) TU3–TU1 interpretation involves the co-reference
+274
+
+An Empirical Approach to Temporal Reference Resolution
+Correct Interpretation of the TU1 reference: Monday 22nd November
+TU2:
+of December?
+TU3:
+of November.
+Figure 12: Dialog Segment of the Case in Row 1 in Figure 10
+TU1
+TU2
+TU3
+Wed 14 April
+Fri 16 April
+Wed 14 Apr Later Month
+Figure 13: Structure of the Case in Row 3 of Figure 10
+anaphoric relation, while the (incorrect) TU3–TU2 interpretation involves the frame of ref-
+erence anaphoric relation; the certainty factor of the former is suﬃciently larger than that
+of the latter to overcome the distance-factor penalty. In addition, such interpretations often
+involve large jumps forward in time, which are penalized by the critics.
+The worst case of cumulative error, row 1, is an example. The segment is depicted in
+Figure 12. The incorrect interpretation involving TU2 is November of the following year,
+calculated under the frame of reference anaphoric relation. The participants do not discuss
+the year, so the system cannot recover. Thus, a large amount of cumulative error would
+result if that interpretation were chosen.
+The segment corresponding to row 3 is similar. Its structure is depicted in Figure 13. In
+this passage, two days are mentioned in sequence, Wednesday 14 April (the TU1 reference)
+and Friday 16 April (the TU2 reference). Then, the day mentioned ﬁrst—Wednesday 14
+April—is referred to again as “Wednesday the 14th” (the TU3 reference).
+There is no
+relation in our model that enables the correct interpretation of TU3 to be obtained from
+TU2. If TU2 were taken to be the antecedent of TU3, the resulting incorrect interpretation
+would be the next possible Wednesday 14, in a later month (possibly in a later year), under
+the frame of reference anaphoric relation. What is required for the correct interpretation is
+the co-reference anaphoric relation to be established between TU1 and TU3. We saw exactly
+the same pattern above for the row 1 discourse segment, depicted in Figure 12, except that
+in that case a later month was calculated, rather than a later date.
+It should be noted that, if times rather than days or months were being discussed, the
+correct interpretation for TU3 could be obtained from TU2 under the modify anaphoric
+relation. A good example of this occurs in the corpus example in Figure 1, repeated here
+275
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+Temporal context: Tuesday 28 September
+s1
+1
+On Thursday I can only meet after two pm
+2
+From two to four
+TU1
+3
+Or two thirty to four thirty
+TU2
+4
+Or three to ﬁve
+TU3
+s2
+5
+Then how does from two thirty to
+four thirty seem to you
+6
+On Thursday
+s1
+7
+Thursday the thirtieth of September
+Figure 14: Corpus Example from Figure 1
+as Figure 14. The modify anaphoric relation enables TU2 to be the antecedent of TU3.
+The same would be true in the simpler case of “Two? Or Three? How about Two?”. A
+promising future extension would be to develop a new modify anaphoric relation for these
+cases.
+Returning to column 6 of Figure 10, note that two of the cumulative error ﬁgures are
+listed as “worst case.” These are cases in which there are two TU2 references and there are
+many diﬀerent possible interpretations of the passage.
+Notice that the second and fourth rows correspond to cases in which TU2 is a competitor,
+yet no signiﬁcant potential cumulative error results (the minor errors listed for row 4 are due
+to the relation not ﬁtting exactly, rather than an error from choosing the wrong antecedent:
+six in the morning rather than in the morning is placed into the high speciﬁcity ﬁelds). In
+both of these cases, the error corrects itself: TU1 is incorrectly taken to be the antecedent
+of TU2, which is in turn incorrectly taken to be the antecedent of TU3. But TU2 in eﬀect
+copies over the information from TU1 that is needed to interpret TU3. As a result, the
+interpretation of TU3 is correct.
+In the cases for which there are only a few potential cumulative errors, either a new,
+unambiguous time is soon introduced, or a time being discussed before the oﬀending TU2
+reference is soon reintroduced, getting things back on track.
+An important discourse feature of the dialogs is the degree of redundancy of the times
+mentioned (Walker, 1996). This limits the ambiguity of the times speciﬁed, and it also
+leads to a higher level of robustness, since additional Temporal Units with the same time
+are placed on the focus list and previously mentioned times are reintroduced.
+Table 6
+presents measures of redundancy.
+The redundancy is broken down into the case where
+redundant plus additional information is provided (Redundant) versus the case where the
+temporal information is just repeated (Reiteration). This shows that roughly 27% of the
+CMU utterances with temporal information contain redundant temporal references, while
+20% of the NMSU ones do.
+In considering how the model could be improved, in addition to adding a new modify
+anaphoric relation for cases such as those in Figures 12 and 13, habituals are clearly an
+area for investigation. Many of the oﬀending references are habitual, and all but one of the
+subdialogs and borderline subdialogs involve habituals. In a departure from the algorithm,
+276
+
+An Empirical Approach to Temporal Reference Resolution
+Dialog Set
+Temporal Utterances
+Redundant
+Reiteration
+%
+cmu
+210
+36
+20
+26.7
+nmsu
+122
+11
+13
+19.7
+Table 6: Redundancy in the Training Dialogs
+TU1
+TU2
+TU3
+TU4
+Figure 15: Temporal Multiple Thread Structure
+the system uses a simple heuristic for ignoring subdialogs: a time is ignored if the utterance
+evoking it is in the simple past or past perfect. This prevents some of the potential errors
+and suggests that changes in tense, aspect, and modality are promising clues to explore
+for recognizing subsegments in this kind of data (see, for example, Grosz & Sidner, 1986;
+Nakhimovsky, 1988).
+8.1.2 Multiple threads
+Ros´e et al. (1995, p. 31) describe dialogs composed of multiple threads as “negotiation
+dialogues in which multiple propositions are negotiated in parallel.” According to Ros´e et
+al., dialogs with such multiple threads pose challenges to a stack-based discourse model on
+both the intentional and attentional levels. They posit a more complex representation of
+attentional state to meet these challenges, and improve their results on speech act resolution
+in a corpus of scheduling dialogs by using their model of attentional state.5
+As discussed above, in this work we address only the attentional level. The relevant
+structure for temporal reference resolution, abstracting from the examples given by Ros´e et
+al., is shown in Figure 15. There are four Temporal Units mentioned in the order TU1, TU2,
+TU3, and TU4 (other times could be mentioned in between). The (attentional) multiple
+thread case is when TU1 is required to be an antecedent of TU3, but TU2 is also needed to
+5. They do not report how many multiple thread instances appear in their data.
+277
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+Assumed Dialog Date: Friday 11 April
+(1)
+S1:
+We need to set up a schedule for the meeting.
+(2)
+How does your schedule look for next week?
+(3)
+S2:
+Well, Monday and Tuesday both mornings are good.
+(4)
+Wednesday afternoon is good also.
+(5)
+S1:
+It looks like it will have to be Thursday then.
+(6)
+Or Friday would also possibly work.
+(7)
+Do you have time between twelve and two on Thursday?
+(8)
+Or do you think sometime Friday afternoon you could meet?
+(9)
+S2:
+No.
+(10)
+Thursday I have a class.
+(11)
+And Friday is really tight for me.
+(12)
+How is the next week?
+(13)
+If all else fails there is always video conferencing.
+(14)
+S1:
+Monday, Tuesday, and Wednesday I am out of town.
+(15)
+But Thursday and Friday are both good.
+(16)
+How about Thursday at twelve?
+(17)
+S2:
+Sounds good.
+(18)
+See you then.
+Figure 16: Example of Deliberating Over A Meeting Time
+(Ros´e et al., 1995, p. 32)
+interpret TU4. There are no realizations of this structure, in terms of our model, in either
+the NMSU or CMU training data set.
+The case represented by row three in Figure 10, whose structure is depicted above in 13,
+is the instance in our data that is most closely related to the situations addressed by Ros´e
+et al. This is a type of structure that Grosz and Sidner’s model addresses, but it is not a
+multiple thread case, since TU2 is not needed to interpret a Temporal Unit mentioned after
+TU3.
+Ros´e et al.’s examples of dialogs containing multiple threads are shown in Figures 16
+and 17, which are Ros´e et al.’s Figures 1 and 2, respectively. Figure 16 is an extended
+example, and Figure 17 contains a simpliﬁed example which they analyze in greater detail.
+The passage in Figure 16 would be processed by our algorithm as follows. The dialog
+date is not given in (Ros´e et al., 1995). For concreteness, let us suppose that the dialog date
+is Friday 11 April. Then, next week is Monday 14 April through Friday 18 April (the dialog
+does not mention weekend days, so we exclude them for ease of discussion). Utterance 2 is
+deictic, introducing next week into the discourse. Utterances 3-6 all have both deictic and
+anaphoric readings, all of which yield the correct results.
+The deictic relation for all of them is the frame of reference deictic relation, under which
+the interpretations are forward references from the dialog date:
+278
+
+An Empirical Approach to Temporal Reference Resolution
+Utterance
+Deictic Interpretation
+3
+Monday 14 April & Tuesday 15 April
+4
+Wednesday 16 April
+5
+Thursday 17 April
+6
+Friday 18 April
+The correct interpretations of (3)-(6) are also established with the co-reference anaphoric
+relation, with antecedent next week in utterance 2: they each can be interpreted as specifying
+a more speciﬁc time than next week, that is, as a particular day of next week.
+Finally, the frame of reference anaphoric relation yields the correct result for “Tuesday”
+in (3)6 and for the times speciﬁed in utterances (4)-(6).
+The interpretation is the day
+calculated forward from the most recently mentioned Temporal Unit:
+Utterance
+Antecedent
+Interpretation
+3
+Monday 14 April, Utterance 3
+Tuesday 15 April
+4
+Tuesday 15 April, Utterance 3
+Wednesday 16 April
+5
+Wednesday 16 April, Utterance 4
+Thursday 17 April
+6
+Thursday 17 April, Utterance 5
+Friday 18 April
+Utterances (7) and (10) are potential challenges for our algorithm, representing instances of
+the situation depicted in Figure 13: Thursday 24 April is a possible incorrect interpretation
+of “Thursday” in these utterances, yielded by the frame of reference anaphoric relation.
+The correct interpretation is also a candidate, yielded by multiple relations: the frame of
+reference deictic relation and the co-reference anaphoric relation, with Thursday 17 April
+in utterance (5) as antecedent. The relative magnitude of the certainty factors of the co-
+reference and frame of reference anaphoric relations means that the correct interpretation is
+likely to be chosen in practice, as mentioned in Section 8.1.1. If the incorrect interpretation
+were chosen for utterances (7) and (10), then incorrect interpretations of “Friday” in each
+of (8) and (11) would be possible: the Friday after the incorrect date of Thursday 24 April,
+yielded by the frame of reference anaphoric relation. However, the correct interpretations
+would be possible too, yielded by the frame of reference deictic relation and the co-reference
+anaphoric relation.
+Utterances (12) through (16) have analogous interpretations, except that the deictic
+interpretations yield incorrect results (that is, due to utterance 12, “How is the next week?”,
+the days are actually of the week Monday 21 April through Friday 25 April; the deictic
+interpretations are of the week Monday 14 April through Friday 18 April). Thus, there are
+one correct and two incorrect interpretations for some of the utterances, making it less likely
+in practice that the correct interpretation would be chosen. Note that, generally speaking,
+which focus model is used does not directly address the deictic/anaphoric ambiguity, so,
+for the purposes of this section, the two parts of the dialog pose the same challenge to the
+focus model.
+The dialog in Figure 17 is analogous. However, “The other day” in (5) brings up other
+issues. There is a special case of the co-reference anaphoric relation for such expressions
+6. Recall that multiple Temporal Units speciﬁed in a single utterance are added to the focus list in order
+of mention and treated as separate discourse entities.
+279
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+1. When can you meet next week?
+2. Tuesday afternoon looks good.
+3. I could do it Wednesday morning too.
+4. Tuesday I have a class from 12:00-1:30.
+5. But the other day sounds good.
+A. Simple Stack Based Structure
+DS4
+DS3
+DS2
+DS1
+DS0
+1. When can you meet next week?
+2. Tuesday afternoon looks good.
+3. I could do it Wednesday morning too.
+4. Tuesday I have a class from 12:00-1:30.
+5. But the other day sounds good.
+B. Graph-Structured Stack Structure
+DSE
+DSD
+DSC
+DSB
+DSA
+Figure 17: Sample Analysis
+(Ros´e et al., 1995, p. 33)
+280
+
+An Empirical Approach to Temporal Reference Resolution
+(i.e., “the other” “day”|“month”|“year”; see Anaphoric Rule 7 in Online Appendix 1). In
+this case, the second most recent day, month, or year, as appropriate, is the candidate
+antecedent. Presumably, neither the most recently mentioned day nor a day mentioned
+before two or more others would be referred to as “the other day”; thus, we anticipate
+that this is a good heuristic. Nevertheless, if (5) explicitly mentioned “Wednesday,” our
+algorithm would have a correct and an incorrect interpretation to choose between.
+In summary, there were no instances of temporal multiple threads of the type addressed
+by Ros´e et al., either in the CMU training data upon which the algorithm was developed,
+or in the NMSU training data to which the algorithm was later applied. If segments such as
+those illustrated in Ros´e et al. were to appear, an incorrect interpretation by our algorithm
+would be possible, but, under our model, the correct antecedent would also be available.
+For the examples they present, the algorithm faces the same choice: establish a co-reference
+relation to a time before the last one (the correct interpretation), or establish a frame of
+reference relation with the immediately preceding time (an incorrect interpretation).
+If
+performing temporal reference resolution is the goal, and if one is faced with an application
+in which such temporal multiple threads do occur, our investigation of the problem suggests
+that this speciﬁc situation should be investigated before assuming that a more complex
+focus model is needed. Adding a new modify anaphoric relation could be investigated. Or,
+as implemented in our system, a speciﬁc preference could be deﬁned for the co-reference
+relation over the frame of reference relation when both are possible in a local context.
+Statistical techniques could be used to establish preferences appropriate for the particular
+application.
+The diﬀerent ﬁndings between Ros´e et al. and our work might be due to the fact that
+diﬀerent problems are being addressed. Having no intentional state, our model does not
+distinguish between times being negotiated and other times. It is possible that another
+structure is relevant for the intentional level. Ros´e et al. do not specify whether or not this
+is so. The diﬀerent ﬁndings may also be due to diﬀerences in the data: their protocol is
+like a radio conversation in which a button must be pressed in order to transmit a message,
+and the other participant cannot transmit a message until the speaker releases the button.
+This results in less dynamic interaction and longer turns (Villa, 1994). In the dialogs used
+here, the participants have free control over turn-taking.
+8.2 Coverage and Ambiguity of the Relations Deﬁned in the Model
+A question naturally arises from the evaluation presented in the previous section: in using
+a less complex focus model, have we merely “pushed aside” the ambiguity into the set of
+deictic and anaphoric relations? In this section, we assess the ambiguity of the anaphoric
+relations for the NMSU and CMU training sets. This section also presents other evaluations
+of the relations, including an assessment of their coverage, redundancy, how often they are
+correct, and how often they are applicable.
+The evaluations presented in this section required detailed, time-consuming manual
+annotations. The system’s annotations would not suﬃce, because the implementation does
+not perfectly recognize when a rule is applicable. A sample of four randomly selected dialogs
+in the CMU training set and the four dialogs in the NMSU training set were annotated.
+281
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+The counts derived from the manual annotations for this section are deﬁned below.
+Because this section focuses on the relations, we consider them at the more speciﬁc level of
+the deictic and anaphoric rules presented in Online Appendix 1. In addition, we do not allow
+trivial extensions of the relations, as we did in the evaluation of the focus model (Section
+8.1). The criterion for correctness in this section is the same as for the evaluation of the
+system: a ﬁeld-by-ﬁeld exact match with the manually annotated correct interpretations.
+There is one exception. The starting and end time of day ﬁelds are ignored, since these
+are known weaknesses of the rules, and they represent a relatively minor proportion of the
+overall temporal interpretation.
+The following were derived from manual annotations.
+• TimeRefs: the number of distinct times referred to in each sentence, summed over all
+sentences.
+• TimeRefsC: The number of TimeRefs for which a correct interpretation is available
+under our model (whether or not an incorrect interpretation is also possible).
+• Interp: The number of interpretations possible under the model.
+For the current
+Temporal Unit, there is one Interp for every rule that can be applied.
+• CorrI: The number of Interps that are correct, where correctness is deﬁned as an exact
+match with the manually annotated correct interpretation, except that the starting
+and end time of day ﬁelds are ignored.
+• IncI: The number of incorrect Interps (i.e., Interp = IncI + CorrI).
+• DiﬀI: The number of diﬀerent interpretations
+• DiﬀICorr: The number of diﬀerent interpretations, excluding interpretations of Tem-
+poral Units for which there is not a correct interpretation under our model.
+The values for each data set, together with coverage and ambiguity evaluations, are
+presented in Table 7.
+The ambiguity for both data sets is very low. The Ambiguity ﬁgure in Table 7 represents
+the average number of interpretations per temporal reference, considering only those for
+which the correct interpretation is possible (i.e., it is DiffICorr / TimeRefsC). The
+table also shows the ambiguity when all temporal references are included (i.e., DiffI /
+TimeRefs). As can be seen from the table, the average ambiguity in both data sets is
+much less than two interpretations per utterance.
+The coverage of the relations can be evaluated as (TimeRefsC / TimeRefs), the
+percentage of temporal references for which at least one rule yields the correct interpretation.
+While the coverage of the NMSU data set, 85%, is not perfect, it is good, considering that
+the system was not developed on the NMSU data.
+The data also show that there is often more than one way to achieve the correct inter-
+pretation. This is another type of redundancy: redundancy of the data with respect to the
+model. It is calculated in Table 7 as (CorrI / TimeRefsC), that is, the number of correct
+interpretations over the number of temporal references that have a correct interpretation.
+282
+
+An Empirical Approach to Temporal Reference Resolution
+CMU Training Set
+4 randomly selected dialogs
+TimeRefs
+TimeRefsC
+Interp
+CorrI
+IncI
+DiﬀI
+DiﬀICorr
+78
+74
+165
+142
+23
+91
+85
+Coverage (TimeRefsC / TimeRefs) = 95%
+Ambiguity (DiﬀICorr / TimeRefsC) = 1.15
+Overall Ambiguity (DiﬀI / TimeRefs) = 1.17
+Rule Redundancy (CorrI / TimeRefsC) = 142/74 = 1.92 %
+NMSU Training Set
+4 dialogs
+TimeRefs
+TimeRefsC
+Interp
+CorrI
+IncI
+DiﬀI
+DiﬀICorr
+98
+83
+210
+154
+56
+129
+106
+Coverage (TimeRefsC / TimeRefs) = 85%
+Ambiguity (DiﬀICorr / TimeRefsC) = 1.28
+Overall Ambiguity (DiﬀI / TimeRefs) = 1.32
+Rule Redundancy (CorrI / TimeRefsC) = 154 / 83 = 1.86 %
+Table 7: Coverage and Ambiguity
+283
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+CMU Training Set
+4 randomly selected dialogs
+Rule
+Correct
+Total
+Accuracy
+D1
+4
+4
+1.00
+D2i
+0
+0
+0.00
+D2ii
+35
+40
+0.88
+a frame-of-reference deictic relation
+D3
+1
+2
+0.50
+D4
+0
+0
+0.00
+D5
+0
+0
+0.00
+D6
+2
+2
+1.00
+A1
+45
+51
+0.88
+a co-reference anaphoric relation
+A2
+0
+0
+0.00
+A3i
+1
+1
+1.00
+A3ii
+35
+37
+0.95
+a frame-of-reference anaphoric rel.
+A4
+14
+18
+0.78
+a modify anaphoric relation
+A5
+0
+0
+0.00
+A6i
+2
+2
+1.00
+A6ii
+1
+1
+1.00
+A7
+0
+1
+0.00
+A8
+0
+0
+0.00
+NMSU Training Set
+4 dialogs
+Rule
+Correct
+Total
+Accuracy
+D1
+4
+4
+1.00
+D2i
+0
+0
+0.00
+D2ii
+24
+36
+0.67
+a frame-of-reference deictic relation
+D3
+6
+9
+0.67
+D4
+0
+1
+0.00
+D5
+0
+0
+0.00
+D6
+0
+0
+0.00
+A1
+57
+68
+0.84
+a co-reference anaphoric relation
+A2
+5
+5
+1.00
+A3i
+0
+0
+0.00
+A3ii
+21
+32
+0.66
+a frame-of-reference anaphoric rel.
+A4
+27
+37
+0.73
+a modify anaphoric relation
+A5
+0
+1
+0.00
+A6i
+7
+9
+0.78
+A6ii
+0
+0
+0.00
+A7
+0
+0
+0.00
+A8
+0
+0
+0.00
+Table 8: Rule Applicability Based on Manual Annotations
+For both data sets, there are, on average, roughly two diﬀerent ways to achieve the correct
+interpretation.
+Table 8 shows the number of times each rule applies in total (column 3) and the number
+of times each rule is correct (column 2), according to our manual annotations. Column 4
+shows the accuracies of the rules, i.e., (column 2 / column 3). The rule labels are the ones
+used in Online Appendix 1 to identify the rules.
+The same four rules are responsible for the majority of applications in both data sets,
+the ones labeled D2ii, A1, A3ii, and A4. The ﬁrst is an instance of the frame of reference
+deictic relation, the second is an instance of the co-reference anaphoric relation, the third
+is an instance of the frame of reference anaphoric relation, and the fourth is an instance of
+the modify anaphoric relation.
+How often the system considers and actually uses each rule is shown in Table 9. Specif-
+ically, the column labeled Fires shows how often each rule applies, and the column labeled
+Used shows how often each rule is used to form the ﬁnal interpretation. To help isolate the
+accuracies of the rules, these experiments were performed on unambiguous data. Comparing
+this table with Table 8, we see that the same four rules shown to be the most important by
+284
+
+An Empirical Approach to Temporal Reference Resolution
+CMU data set
+Name
+Used
+Fires
+D1
+16
+16
+D2i
+1
+3
+D2ii
+78
+90
+a frame-of-reference deictic relation
+D3
+5
+5
+D4
+9
+9
+D5
+0
+1
+D6
+2
+2
+A1
+95
+110
+a co-reference anaphoric relation
+A2
+2
+24
+A3i
+1
+1
+A3ii
+72
+86
+a frame-of-reference anaphoric rel.
+A4
+45
+80
+a modify anaphoric relation
+A5
+4
+5
+A6i
+10
+10
+A6ii
+0
+0
+A7
+0
+0
+A8
+1
+1
+NMSU data set
+Name
+Used
+Fires
+D1
+4
+4
+D2i
+2
+2
+D2ii
+20
+31
+a frame-of-reference deictic relation
+D3
+2
+3
+D4
+0
+0
+D5
+0
+0
+D6
+0
+0
+A1
+46
+65
+a co-reference anaphoric relation
+A2
+6
+12
+A3i
+0
+2
+A3ii
+18
+27
+a frame-of-reference anaphoric rel.
+A4
+24
+42
+a modify anaphoric relation
+A5
+3
+5
+A6i
+6
+8
+A6ii
+0
+0
+A7
+0
+0
+A8
+0
+0
+Table 9: Rule Activation by the System on Unambiguous Data
+the manual annotations are also responsible for the majority of the system’s interpretations.
+This holds for both the CMU and NMSU data sets.
+8.3 Evaluation of the Architectural Components
+In this section, we evaluate the architectural components of our algorithm using degradation
+(ablation) studies. We perform experiments without each component in turn, and then with
+none of them, to observe the impact on the system’s performance. Such studies have been
+useful in developing practical methods for other kinds of anaphora resolution as well (see,
+for example, Mitkov & Stys, 1997). Speciﬁcally, an experiment was performed testing each
+of the following variations.
+1. The certainty factors of all of the rules are set to 1.
+Recall that all rules are applied to each utterance, and each rule that matches produces
+a Partial-Augmented-ILT (which is assigned the certainty factor of the rule).
+All
+maximal mergings of the Partial-Augmented-ILTs are then formed, to create a set
+of Augmented-ILTs. Then, the ﬁnal interpretation of the utterance is chosen from
+285
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+among the set of Augmented-ILTs. The certainty factor of each Augmented-ILT is
+the sum of the certainty factors of the Partial-Augmented-ILTs composing it. Thus,
+setting the certainty factors to 1 implements the scheme in which the more partial
+results are merged into an interpretation, the higher the overall certainty factor of
+that interpretation. In other words, this scheme favors the Augmented-ILT resulting
+from the greatest number of rule applications.
+2. The certainty factors of all of the rules are set to 0.
+This scheme is essentially random selection among the Augmented-ILTs that make
+sense according to the critics. If the critics did not exist, then setting the rule certainty
+factors to 0 would result in random selection. With the critics, any Augmented-ILTs
+to which the critics apply are excluded from consideration, because the critics will
+lower their certainty factors to negative numbers.
+3. No merging of the rule results is performed.
+That is, the Partial-Augmented-ILTs are not merged prior to selection of the ﬁnal
+Augmented-ILT. The eﬀect of this is that the result of one single rule is chosen to be
+the ﬁnal interpretation.
+4. The critics are not used.
+5. The distance factors are not used.
+In this case, the certainty factors for rules that access the focus list are not adjusted
+based on how far back the chosen focus list item is.
+6. All variations are applied, excluding case 2.
+Speciﬁcally, neither the critics nor the distance factors are used, no merging of partial
+results is performed, and the rules are all given the same certainty factor (namely, 1).
+Table 10 shows the results for each variation when run over the unambiguous but uncor-
+rected CMU training data. For comparison, the ﬁrst row shows the results for the system
+as normally conﬁgured. As with the previous evaluations, accuracy is the percentage of
+the correct answers the system produces, while precision is the percentage of the system’s
+answers that are correct.
+Only two of the diﬀerences are statistically signiﬁcant (p ≤0.05), namely, the precision
+of the system’s performance when the critics are not used, and the accuracy of the system’s
+performance when all of the certainty factors are 0. The signiﬁcance analysis was performed
+using paired t-tests comparing the results for each variation with the results for the system
+as normally conﬁgured.
+The performance diﬀerence when the critics are not used is due to extraneous alternatives
+that the critics would have weeded out. The drop in accuracy when the certainty factors
+are all 0 shows that the certainty factors have some eﬀect. Experimenting with statistical
+methods to derive them would likely lead to further improvement.
+The remaining ﬁgures are all only slightly lower than those for the full system, and are
+all much higher than the baseline accuracies.
+286
+
+An Empirical Approach to Temporal Reference Resolution
+Variation
+Cor
+Inc
+Mis
+Ext
+Nul
+Act
+Poss
+Acc
+Prec
+system as is
+1283
+44
+112
+37
+574
+1938
+2013
+0.923
+0.958
+all CFs 1.0
+1261
+77
+101
+50
+561
+1949
+2000
+0.911
+0.935
+all CFs 0.0
+1202
+118
+119
+49
+562
+1931
+2001
+0.882
+0.914
+-critics
+1228
+104
+107
+354
+667
+2353
+2106
+0.900
+0.805
+-dist. factors
+1265
+52
+122
+50
+591
+1958
+2030
+0.914
+0.948
+-merge
+1277
+46
+116
+54
+577
+1954
+2016
+0.920
+0.949
+combo
+1270
+53
+116
+67
+594
+1984
+2033
+0.917
+0.940
+Legend
+Cor(rect):
+System and key agree on non-null value
+Inc(orrect):
+System and key diﬀer on non-null value
+Mis(sing):
+System has null value for non-null key
+Ext(ra):
+System has non-null value for null key
+Nul(l):
+Both system and key give null answer
+Poss(ible):
+Correct + Incorrect + Missing + Null
+Act(ual):
+Correct + Incorrect + Extra + Null
+Base(line)Acc(uracy):
+Baseline accuracy (input used as is)
+Acc(uracy):
+% Key values matched correctly ((Correct + Null)/Possible)
+Prec(ision):
+% System answers matching the key ((Correct + Null)/Actual)
+Table 10: Evaluation of the Variations on CMU Unambiguous/Uncorrected Data
+287
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+It is interesting to note that the unimportance of the distance factors (variation 5) is
+consistent with the ﬁndings presented in Section 8.1 that the last mentioned time is an
+acceptable antecedent in the vast majority of cases. Otherwise, we might have expected to
+see an improvement in variation 5, since the distance factors penalize going further back on
+the focus list.
+9. Conclusions
+Scheduling dialogs, during which people negotiate the times of appointments, are common
+in everyday life. This paper reports the results of an in-depth empirical investigation of
+resolving explicit temporal references in scheduling dialogs. There are four basic phases of
+this work: data annotation, model development, system implementation and evaluation,
+and model evaluation and analysis. The system and model were developed primarily on
+one set of data (the CMU dialogs), and then applied later to a much more complex set
+of data (the NMSU dialogs), to assess the generalizability of the model for the task being
+performed. Many diﬀerent types of empirical methods were applied to both data sets to
+pinpoint the strengths and weaknesses of the approach.
+In the data annotation phase, detailed coding instructions were developed and an inter-
+coder reliability study involving naive subjects was performed. The results of the study are
+very good, supporting the viability of the instructions and annotations. During the model
+development phase, we performed an iterative process of implementing a proposed set of
+anaphoric and deictic relations and then reﬁning them based on system performance (on
+the CMU training data), until we settled on the set presented here. We also developed our
+focus model during this phase. The question of what type of focus model is required for
+various tasks is a question of ongoing importance in the literature. It appeared from our
+initial observations of the data that, contrary to what we expected, a recency-based focus
+model might be adequate. To test this hypothesis, we made the strategic decision to limit
+ourselves to a recency-based model, rather than build some kind of hybrid model whose
+success or failure would not have told us as much.
+During system implementation and evaluation, a system implementing the model was
+implemented and evaluated on unseen test data, using a challenging ﬁeld-by-ﬁeld compari-
+son of system and human answers. To be considered the right answer, the information must
+not only be correct, but must also be included in the correct ﬁeld of the output representa-
+tion. Taking as input the ambiguous output of a semantic grammar, the system achieves an
+overall accuracy of 81% on unseen CMU test data, a large improvement over the baseline
+accuracy of 43%. On an unseen test set from the more complex NMSU data, the results
+are very respectable: an overall accuracy of 69%, with a much lower baseline accuracy of
+29%. This also shows the robustness of the CMU semantic parser (Lavie & Tomita, 1993;
+Levin et al., 1995), which was given the NMSU dialogs as input without being modiﬁed in
+any way to handle them.
+The implementation is an important proof of concept.
+However, it is not a direct
+evaluation of the model, because there are errors due to factors we do not focus on in this
+work. Some of the error is simply due to utterance components being outside the coverage
+of the CMU parser, or having high semantic ambiguity. The only information we use to
+perform semantic disambiguation is the temporal context. The Enthusiast researchers have
+288
+
+An Empirical Approach to Temporal Reference Resolution
+already developed better techniques for resolving the semantic ambiguity in these dialogs
+(Shum et al., 1994), which could be used to improve performance.
+Thus, in the model evaluation and analysis phase, we performed extensive additional
+evaluation of the algorithm itself. We focus on the relations and the focus model, because
+they are the main contributions of this work. Our degradation studies support this, as
+they show that the other aspects of the algorithm, such as the distance factors and merging
+process, are responsible for little of the system’s success (see Section 8.3).
+Our evaluations show the strength of the focus model for the task, not only for the
+CMU data on which it was developed, but also for the more complex NMSU data. While
+the NMSU data is more complex, there are few cases in which the last mentioned time is
+not an appropriate antecedent, highlighting the importance of recency (Walker, 1996); see
+Section 8.1. We characterized those cases along a number of dimensions, to identify the
+particular types of challenges they pose (see Figure 10).
+In order to compare our work to that of others, we formally deﬁned subdialogs and
+the multiple thread structures addressed by Ros´e et al. (1995) with respect to our model
+and the speciﬁc problem of temporal reference resolution. An interesting ﬁnding is that,
+while subdialogs of the types addressed by Grosz and Sidner (1986) were found in the
+data, no cases of multiple threads were found. That is, some subdialogs, all in the NMSU
+data, mention times that potentially interfere with the correct antecedent. But in none
+of these cases would subsequent errors result if, upon exiting the subdialog, the oﬀending
+information were popped oﬀa discourse stack or otherwise made inaccessible.
+Changes
+in tense, aspect, and modality are promising clues for recognizing subdialogs in this data,
+which we plan to explore in future work.
+To assess whether or not using a simpler focus model requires one to use a highly
+ambiguous set of relations, we performed a separate evaluation of the relations, based on
+detailed, manual annotations of a set of dialogs. The ambiguity of the relations for both
+data sets is very low, and the coverage is good (see Table 7). In a comparison of system
+and human annotations, the same four rules identiﬁed to be most important in the manual
+annotations are responsible for the majority of the system’s interpretations for both data
+sets (see Tables 8 and 9), suggesting that the system is a good implementation of the model.
+Recently, many in computational discourse processing have turned to empirical studies
+of discourse, with a goal to develop general theories by analyzing speciﬁc discourse phenom-
+ena and systems that process them (Walker & Moore, 1997). We contribute to this general
+enterprise. We performed many diﬀerent evaluations, on the CMU data upon which the
+model was developed, and on the more complex NMSU data. The task and model compo-
+nents were explicitly speciﬁed to facilitate evaluation and comparison. Each evaluation is
+directed toward answering a particular question; together, the evaluations paint an overall
+picture of the diﬃculty of the task and of the success of the proposed model.
+As a contribution of this work, we have made available on the project web page the
+coding instructions, the NMSU dialogs, and the various kinds of manual annotations we
+performed.
+289
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+10. Acknowledgements
+This research was supported in part by the Department of Defense under grant number
+0-94-10. A number of people contributed to this work. We want to especially thank David
+Farwell, Daniel Villa, Carol Van Ess-Dykema, Karen Payne, Robert Sinclair, Rocio Guill´en,
+David Zarazua, Rebecca Bruce, Gezina Stein, Tom Herndon, and the project members
+of Enthusiast at CMU, whose cooperation greatly aided our project. We wholeheartedly
+thank the anonymous reviewers, whose comments and criticisms were very helpful. We also
+thank Esther Steiner, Philip Bernick, and Julie England for participating in the intercoder
+reliability study, and Linda Fresques for proofreading the paper.
+References
+Alexandersson, J., Reithinger, N., & Elisabeth, M. (1997). Insights into the dialogue pro-
+cessing of Verbmobil. In Proc. 5th Conference on Applied Natural Language Process-
+ing, pp. 33–40. Association for Computational Linguistics.
+Allen, J. (1984). Toward a general theory of action and time. Artiﬁcial Intelligence, 23,
+123–154.
+Allen, J., & Perrault, C. (1980). Analyzing intention in utterances. Artiﬁcial Intelligence,
+15, 143–178.
+Arhenberg, L., Dahlb¨ack, N., & J¨onsson, A. (1995). Coding schemes for natural language
+dialogues.
+In Working Notes of AAAI Spring Symposium: Empirical Methods in
+Discourse Interpretation and Generation, pp. 8–13.
+Busemann, S., Declerck, T., Diagne, A. K., Dini, L., Klein, J., & Schmeier, S. (1997).
+Natural language dialogue service for appointment scheduling agents. In Proc. 5th
+Conference on Applied Natural Language Processing, pp. 25–32. Association for Com-
+putational Linguistics.
+Carletta, J. (1996). Assessing agreement on classiﬁcation tasks: the kappa statistic. Com-
+putational Linguistics, 22(2), 249–254.
+Clark, H. H. (1977). Bridging. In Johnson-Laird, P. N., & Wason, P. C. (Eds.), Thinking:
+Readings in Cognitive Science. Cambridge University Press.
+Condon, S., & Cech, C. (1995). Problems for reliable discourse coding schemes. In Proc.
+AAAI Spring Symposium on Empirical Methods in Discourse Interpretation and Gen-
+eration, pp. 27–33.
+Grosz, B., Joshi, A., & Weinstein, S. (1995). Centering: A framework for modeling the
+local coherence of discourse. Computational Linguistics, 21(2), 203–225.
+Grosz, B., & Sidner, C. (1986). Attention, intention, and the structure of discourse. Com-
+putational Linguistics, 12(3), 175–204.
+Hays, W. L. (1988). Statistics (Fourth edition). Holt, Rinehart, and Winston.
+290
+
+An Empirical Approach to Temporal Reference Resolution
+Heim, I. (1982). The Semantics of Deﬁnite and Indeﬁnite Noun Phrases. Ph.D. thesis,
+University of Massachusetts at Amherst.
+Hirschberg, J., & Nakatani, C. (1996). A prosodic analysis of discourse segments in direction-
+giving monologues. In Proc. 34th Annual Meeting of the Association for Computa-
+tional Linguistics, pp. 286–293.
+Hobbs, J. (1978). Resolving pronoun references. Lingua, 44, 311–338.
+Hwang, C., & Schubert, L. (1992). Tense trees as the “ﬁne structure” of discourse. In Proc.
+30th Annual Meeting of the Association for Computational Linguistics, pp. 232–240.
+Isard, A., & Carletta, J. (1995). Replicability of transaction and action coding in the map
+task corpus. In Working Notes of AAAI Spring Symposium: Empirical Methods in
+Discourse Interpretation and Generation, pp. 60–66.
+Kameyama, M., Passonneau, R., & Poesio, M. (1993). Temporal centering. In Proc. of the
+31st Annual Meeting of the Association for Computational Linguistics, pp. 70–77.
+Kamp, H., & Reyle, U. (1993).
+From Discourse to Logic. Kluwer Academic Publisher,
+Dordrecht, The Netherlands.
+Lascarides, A., Asher, N., & Oberlander, J. (1992). Inferring discourse relations in context.
+In Proc. 30th Annual Meeting of the Association for Computational Linguistics, pp.
+1–8.
+Lavie, A., & Tomita, M. (1993). GLR* - an eﬃcient noise skipping parsing algorithm for
+context free grammars. In Proc. 3rd International Workshop on Parsing Technologies.
+Levin, L., Glickman, O., Qu, Y., Gates, D., Lavie, A., Ros´e, C., Van Ess-Dykema, C., &
+Waibel, A. (1995). Using context in the machine translation of spoken language. In
+Proc. Theoretical and Methodological Issues in Machine Translation (TMI-95).
+Litman, D., & Passonneau, R. (1995). Combining multiple knowledge sources for discourse
+segmentation. In Proc. 33rd Annual Meeting of the Association for Computational
+Linguistics, pp. 130–143.
+Mann, W., & Thompson, S. (1988).
+Rhetorical Structure Theory: Toward a functional
+theory of text organization. Text, 8(3), 243–281.
+Mitkov, R., & Stys, M. (1997). Robust reference resolution with limited knowledge: high
+precision genre-speciﬁc approach for English and Polish. In Recent Advances in Nat-
+ural Language Processing (RANLP-97), pp. 74–81. European Commission, DG XIII.
+Moser, M., & Moore, J. (1995). Investigating cue selection and placement in tutorial dis-
+courses. In Proc. 33rd Annual Meeting of the Association for Computational Linguis-
+tics, pp. 130–143.
+Nakhimovsky, A. (1988). Aspect, aspectual class, and the temporal structure of narrative.
+Computational Linguistics, 14(2), 29–43.
+291
+
+Wiebe, O’Hara, ¨Ohrstr¨om-Sandgren, & McKeever
+O’Hara, T., Wiebe, J., & Payne, K. (1997). Instructions for annotating temporal informa-
+tion in scheduling dialogs. Tech. rep. MCCS-97-308, Computing Research Laboratory,
+New Mexico State University.
+Passonneau, R., & Litman, D. (1993). Intention-based segmentation: human reliability and
+correlation with linguistic cues. In Proc. of the 31st Annual Meeting of the Association
+for Computational Linguistics, pp. 148–155.
+Poesio, M., Vieira, R., & Teufel, S. (1997). Resolving bridging references in unrestricted text.
+In Proc. Workshop on Operational Factors in Practical, Robust Anaphora Resolution
+for Unrestricted Texts. Association for Computational Linguistics.
+Qu, Y., Eugenio, B. D., Lavie, A., Levin, L., & Ros´e, C. (1996). Minimizing cumulative
+error in discourse context. In ECAI Workshop Proceedings on Dialogue Processing in
+Spoken Language Systems.
+Ros´e, C., Eugenio, B. D., Levin, L., & Van Ess-Dykema, C. (1995). Discourse processing
+of dialogues with multiple threads. In Proc. 33rd Annual Meeting of the Association
+for Computational Linguistics, pp. 31–38.
+Shum, B., Levin, L., Coccaro, N., Carbonell, J., Horiguchi, K., Isotani, H., Lavie, A.,
+Mayﬁeld, L., Ros´e, C., Van Ess-Dykema, C., & Waibel, A. (1994). Speech-language
+integration in a multi-lingual speech translation system. In Proceedings of the AAAI
+Workshop on Integration of Natural Language and Speech Processing.
+Sidner, C. (1979). Towards a Computational Theory of Deﬁnite Anaphora Comprehension
+in English Discourse. Ph.D. thesis, MIT.
+Sidner, C. (1983). Focusing in the comprehension of deﬁnite anaphora. In Brady, M., &
+Berwick, R. C. (Eds.), Computational Models of Discourse, pp. 267–330. MIT Press,
+Cambridge, MA.
+Siegel, S., & Castellan, Jr., N. J. (1988). Nonparametric Statistics for the Behavioral Sci-
+ences (Second edition). McGraw-Hill, New York.
+Song, F., & Cohen, R. (1991). Tense interpretation in the context of narrative. In Proc.
+9th National Conference on Artiﬁcial Intelligence (AAAI-91), pp. 131–136.
+Villa, D. (1994). Eﬀects of protocol on discourse internal and external illocutionary markers
+in Spanish dialogs. In Linguistic Association of the Southwest Conference XXIII.
+Walker, L., & Moore, J. (1997). Empirical studies in discourse. Computational Linguistics,
+23(1), 1–12.
+Walker, M. (1996). Limited attention and discourse structure. Computational Linguistics,
+22(2), 255–264.
+Webber, B. L. (1983). So what can we talk about now?. In Brady, M., & Berwick, R.
+(Eds.), Computational Models of Discourse. MIT Press, Cambridge.
+292
+
+An Empirical Approach to Temporal Reference Resolution
+Webber, B. (1988). Tense as discourse anaphor. Computational Linguistics, 14(2), 61–73.
+Wiebe, J., Farwell, D., Villa, D., Chen, J.-L., Sinclair, R., Sandgren, T., Stein, G., Zarazua,
+D., & O’Hara, T. (1996). Artwork: Discourse processing in machine translation of
+dialog. Tech. rep. MCCS-96-294, Computing Research Laboratory, New Mexico State
+University.
+293

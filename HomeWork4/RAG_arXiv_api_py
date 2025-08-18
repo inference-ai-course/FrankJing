@@ -1,0 +1,334 @@
+import argparse
+import dataclasses
+import datetime as dt
+import json
+import os
+from pathlib import Path
+from typing import Dict, Iterable, List, Optional, Tuple
+import numpy as np
+from tqdm import tqdm
+# PDF extraction
+import fitz  # PyMuPDF
+# Embeddings
+from sentence_transformers import SentenceTransformer
+# Vector index
+import faiss  # use faiss-cpu on Windows
+# FastAPI service
+from fastapi import FastAPI
+from pydantic import BaseModel
+from sklearn.preprocessing import normalize
+
+# ------------------------------
+# Paths & constants
+# ------------------------------
+ROOT = Path(__file__).resolve().parent
+DEFAULT_DATA_DIR = ROOT / "data"
+TEXT_DIR = ROOT / "texts"
+CHUNKS_PATH = ROOT / "chunks.jsonl"
+EMB_PATH = ROOT / "embeddings.npy"
+META_PATH = ROOT / "meta.json"
+FAISS_PATH = ROOT / "faiss.index"
+
+for p in [DEFAULT_DATA_DIR, TEXT_DIR]:
+    p.mkdir(parents=True, exist_ok=True)
+
+# ------------------------------
+# Data models
+# ------------------------------
+@dataclasses.dataclass
+class Chunk:
+    chunk_id: str
+    source_path: str
+    source_name: str
+    start_token: int
+    end_token: int
+    text: str
+
+# ------------------------------
+# Discovery & extraction
+# ------------------------------
+
+def discover_pdfs(data_dir: Path) -> List[Path]:
+    pdfs = sorted([p for p in data_dir.rglob("*.pdf")])
+    return pdfs
+
+
+def extract_text_from_pdf(pdf_path: Path) -> str:
+    """Extract all text from a PDF using PyMuPDF."""
+    doc = fitz.open(pdf_path)
+    pages = []
+    for page in doc:
+        pages.append(page.get_text())
+    return "\n".join(pages)
+
+
+def ensure_text_file(pdf_path: Path) -> Path:
+    out_path = TEXT_DIR / (pdf_path.stem + ".txt")
+    if out_path.exists() and out_path.stat().st_size > 0:
+        return out_path
+    try:
+        text = extract_text_from_pdf(pdf_path)
+    except Exception as e:
+        raise RuntimeError(f"Failed to read {pdf_path}: {e}")
+    out_path.write_text(text, encoding="utf-8")
+    return out_path
+
+# ------------------------------
+# Chunking
+# ------------------------------
+
+def chunk_text(text: str, max_tokens: int = 512, overlap: int = 50) -> List[str]:
+    tokens = text.split()
+    if max_tokens <= 0:
+        return [text]
+    step = max(1, max_tokens - max(0, overlap))
+    chunks: List[str] = []
+    for i in range(0, len(tokens), step):
+        chunk = tokens[i:i + max_tokens]
+        if not chunk:
+            break
+        chunks.append(" ".join(chunk))
+        if i + max_tokens >= len(tokens):
+            break
+    return chunks
+
+
+def build_chunks(pdf_paths: List[Path], max_tokens: int, overlap: int) -> List[Chunk]:
+    chunks: List[Chunk] = []
+    for pdf in tqdm(pdf_paths, desc="Extracting + chunking PDFs"):
+        text_path = ensure_text_file(pdf)
+        raw = text_path.read_text(encoding="utf-8", errors="ignore")
+        words = raw.split()
+        step = max(1, max_tokens - max(0, overlap))
+        start = 0
+        while start < len(words):
+            end = min(start + max_tokens, len(words))
+            txt = " ".join(words[start:end])
+            chunk = Chunk(
+                chunk_id=f"{pdf.stem}:{start}-{end}",
+                source_path=str(pdf.resolve()),
+                source_name=pdf.name,
+                start_token=start,
+                end_token=end,
+                text=txt,
+            )
+            chunks.append(chunk)
+            if end == len(words):
+                break
+            start += step
+    return chunks
+
+# ------------------------------
+# Embeddings
+# ------------------------------
+
+class Embedder:
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2", device: Optional[str] = None):
+        self.model_name = model_name
+        self.model = SentenceTransformer(model_name, device=device)
+
+    def encode(self, texts: List[str], batch_size: int = 64) -> np.ndarray:
+        vecs = self.model.encode(texts, batch_size=batch_size, show_progress_bar=True, convert_to_numpy=True, normalize_embeddings=False)
+        return vecs.astype(np.float32, copy=False)
+
+# ------------------------------
+# Indexing
+# ------------------------------
+
+def build_faiss(embeddings: np.ndarray) -> faiss.Index:
+    if embeddings.ndim != 2:
+        raise ValueError("Embeddings must be 2D [N, D]")
+    n, d = embeddings.shape
+    index = faiss.IndexFlatIP(d)
+    index.add(embeddings)
+    return index
+
+
+def save_index(index: faiss.Index, path: Path) -> None:
+    faiss.write_index(index, str(path))
+
+
+def load_index(path: Path) -> faiss.Index:
+    return faiss.read_index(str(path))
+
+# ------------------------------
+# Persistence helpers
+# ------------------------------
+
+def save_chunks(chunks: List[Chunk], path: Path) -> None:
+    with path.open("w", encoding="utf-8") as f:
+        for ch in chunks:
+            f.write(json.dumps(dataclasses.asdict(ch), ensure_ascii=False) + "\n")
+
+
+def load_chunks(path: Path) -> List[Chunk]:
+    items: List[Chunk] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            d = json.loads(line)
+            items.append(Chunk(**d))
+    return items
+
+
+def save_meta(meta: Dict, path: Path) -> None:
+    path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+
+
+def load_meta(path: Path) -> Dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+# ------------------------------
+# Build pipeline
+# ------------------------------
+
+def cmd_build(args: argparse.Namespace) -> None:
+    data_dir = Path(args.data).resolve()
+    pdfs = discover_pdfs(data_dir)
+    if not pdfs:
+        raise SystemExit(f"No PDFs found under {data_dir}. Place files under ./data")
+
+    print(f"Found {len(pdfs)} PDFs. Extracting, chunking, embedding with {args.model} …")
+    chunks = build_chunks(pdfs, max_tokens=args.chunk_size, overlap=args.overlap)
+    print(f"Created {len(chunks)} chunks.")
+    save_chunks(chunks, CHUNKS_PATH)
+
+    embedder = Embedder(args.model)
+    embeddings = embedder.encode([c.text for c in chunks], batch_size=args.batch_size)
+    embeddings = normalize(embeddings, norm='l2', axis=1).astype(np.float32)
+
+    np.save(EMB_PATH, embeddings)
+
+    index = build_faiss(embeddings)
+    save_index(index, FAISS_PATH)
+
+    meta = {
+        "created_at": dt.datetime.utcnow().isoformat() + "Z",
+        "model": args.model,
+        "dim": int(embeddings.shape[1]),
+        "num_chunks": int(embeddings.shape[0]),
+        "params": {"chunk_size": args.chunk_size, "overlap": args.overlap, "batch_size": args.batch_size},
+    }
+    save_meta(meta, META_PATH)
+    print(f"Saved: {CHUNKS_PATH}, {EMB_PATH}, {FAISS_PATH}, {META_PATH}")
+
+# ------------------------------
+# Query helpers
+# ------------------------------
+
+def ensure_ready() -> Tuple[List[Chunk], np.ndarray, faiss.Index, Dict, Embedder]:
+    if not all(p.exists() for p in [CHUNKS_PATH, EMB_PATH, FAISS_PATH, META_PATH]):
+        raise RuntimeError("Artifacts missing. Run `python rag_local_pdfs.py build` first.")
+    chunks = load_chunks(CHUNKS_PATH)
+    embeddings = np.load(EMB_PATH)
+    index = load_index(FAISS_PATH)
+    meta = load_meta(META_PATH)
+    embedder = Embedder(meta.get("model", "all-MiniLM-L6-v2"))
+    return chunks, embeddings, index, meta, embedder
+
+
+def search_top_k(query: str, k: int = 3) -> List[Dict]:
+    chunks, _, index, meta, embedder = ensure_ready()
+    qvec = embedder.encode([query])[0]
+    qvec = qvec / np.linalg.norm(qvec)
+    D, I = index.search(qvec[None, :], k)
+    results = []
+    for dist, idx in zip(D[0].tolist(), I[0].tolist()):
+        ch = chunks[idx]
+        results.append({
+            "rank": len(results) + 1,
+            "similarity": float(dist),
+            "chunk_id": ch.chunk_id,
+            "source": ch.source_name,
+            "source_path": ch.source_path,
+            "start_token": ch.start_token,
+            "end_token": ch.end_token,
+            "text": ch.text,
+        })
+    return results
+
+# ------------------------------
+# CLI commands: query & report
+# ------------------------------
+
+def cmd_query(args: argparse.Namespace) -> None:
+    results = search_top_k(args.q, k=args.k)
+    print(json.dumps({"query": args.q, "k": args.k, "results": results}, ensure_ascii=False, indent=2))
+
+
+def cmd_report(args: argparse.Namespace) -> None:
+    try:
+        queries = eval(args.queries, {"__builtins__": {}}, {})  # simple literal eval of list
+        assert isinstance(queries, list)
+    except Exception:
+        raise SystemExit("--queries must be a Python list literal, e.g., \"['q1','q2']\"")
+    all_out = []
+    for q in queries:
+        res = search_top_k(str(q), k=args.k)
+        all_out.append({"query": q, "results": res})
+    report_path = DEFAULT_DATA_DIR / "retrieval_report.json"
+    report_path.write_text(json.dumps(all_out, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"Wrote report -> {report_path}")
+
+# ------------------------------
+# FastAPI service
+# ------------------------------
+app = FastAPI(title="RAG over Local PDFs", version="1.0.0")
+
+class SearchResponse(BaseModel):
+    query: str
+    k: int
+    results: List[Dict]
+
+@app.get("/")
+def root():
+    return {"message": "RAG over local PDFs. Use /search?q=..."}
+
+@app.get("/meta")
+def get_meta():
+    if META_PATH.exists():
+        return load_meta(META_PATH)
+    return {"error": "No meta found. Build the index first."}
+
+@app.get("/search", response_model=SearchResponse)
+async def search(q: str, k: int = 3):
+    results = search_top_k(q, k=k)
+    return {"query": q, "k": k, "results": results}
+
+# ------------------------------
+# Argparse
+# ------------------------------
+
+def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="RAG over local PDFs (./data)")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    p_build = sub.add_parser("build", help="Extract -> chunk -> embed -> index")
+    p_build.add_argument("--data", type=str, default=str(DEFAULT_DATA_DIR), help="Data directory that contains PDFs (recursive)")
+    p_build.add_argument("--chunk-size", type=int, default=512, help="Chunk size in tokens (words)")
+    p_build.add_argument("--overlap", type=int, default=50, help="Token overlap between chunks")
+    p_build.add_argument("--model", type=str, default="all-MiniLM-L6-v2", help="Sentence-Transformers model name")
+    p_build.add_argument("--batch-size", type=int, default=64, help="Embedding batch size")
+    p_build.set_defaults(func=cmd_build)
+
+    p_query = sub.add_parser("query", help="Query the index from CLI")
+    p_query.add_argument("--q", type=str, required=True, help="Query text")
+    p_query.add_argument("--k", type=int, default=3, help="Top-k results")
+    p_query.set_defaults(func=cmd_query)
+
+    p_report = sub.add_parser("report", help="Generate a small retrieval report")
+    p_report.add_argument("--queries", type=str, required=True, help="Python list literal of queries, e.g., \"['q1','q2']\"")
+    p_report.add_argument("--k", type=int, default=3, help="Top-k per query")
+    p_report.set_defaults(func=cmd_report)
+
+    return p.parse_args(argv)
+
+# ------------------------------
+# Main
+# ------------------------------
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) == 1:
+#        sys.argv += ["build"]  # or ["query", "--q", "test"]
+        sys.argv += ["query", "--q", "Who did the research about processing Unknown Words in HPSG?"]  # or ["query", "--q", "test"]
+    args = parse_args()
+    args.func(args)

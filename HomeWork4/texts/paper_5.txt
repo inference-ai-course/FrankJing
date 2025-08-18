@@ -1,0 +1,914 @@
+arXiv:cs/9809027v1  [cs.CL]  18 Sep 1998
+Conditions on Consistency of
+Probabilistic Tree Adjoining Grammars∗
+Anoop Sarkar
+Dept. of Computer and Information Science
+University of Pennsylvania
+200 South 33rd Street,
+Philadelphia, PA 19104-6389 USA
+anoop@linc.cis.upenn.edu
+Abstract
+Much of the power of probabilistic methods in
+modelling language comes from their ability to
+compare several derivations for the same string
+in the language. An important starting point
+for the study of such cross-derivational proper-
+ties is the notion of consistency. The probabil-
+ity model deﬁned by a probabilistic grammar is
+said to be consistent if the probabilities assigned
+to all the strings in the language sum to one.
+From the literature on probabilistic context-free
+grammars (CFGs), we know precisely the con-
+ditions which ensure that consistency is true for
+a given CFG. This paper derives the conditions
+under which a given probabilistic Tree Adjoin-
+ing Grammar (TAG) can be shown to be con-
+sistent. It gives a simple algorithm for checking
+consistency and gives the formal justiﬁcation
+for its correctness. The conditions derived here
+can be used to ensure that probability models
+that use TAGs can be checked for deﬁciency
+(i.e. whether any probability mass is assigned
+to strings that cannot be generated).
+1
+Introduction
+Much of the power of probabilistic methods
+in modelling language comes from their abil-
+ity to compare several derivations for the same
+string in the language. This cross-derivational
+power arises naturally from comparison of vari-
+ous derivational paths, each of which is a prod-
+uct of the probabilities associated with each step
+in each derivation. A common approach used
+to assign structure to language is to use a prob-
+abilistic grammar where each elementary rule
+∗This research was partially supported by NSF grant
+SBR8920230 and ARO grant DAAH0404-94-G-0426.
+The author would like to thank Aravind Joshi, JeﬀRey-
+nar, Giorgio Satta, B. Srinivas, Fei Xia and the two
+anonymous reviewers for their valuable comments.
+or production is associated with a probability.
+Using such a grammar, a probability for each
+string in the language is computed.
+Assum-
+ing that the probability of each derivation of a
+sentence is well-deﬁned, the probability of each
+string in the language is simply the sum of the
+probabilities of all derivations of the string. In
+general, for a probabilistic grammar G the lan-
+guage of G is denoted by L(G). Then if a string
+v is in the language L(G) the probabilistic gram-
+mar assigns v some non-zero probability.
+There are several cross-derivational proper-
+ties that can be studied for a given probabilis-
+tic grammar formalism. An important starting
+point for such studies is the notion of consis-
+tency. The probability model deﬁned by a prob-
+abilistic grammar is said to be consistent if the
+probabilities assigned to all the strings in the
+language sum to 1. That is, if Pr deﬁned by a
+probabilistic grammar, assigns a probability to
+each string v ∈Σ∗, where Pr(v) = 0 if v ̸∈L(G),
+then
+X
+v∈L(G)
+Pr(v) = 1
+(1)
+From the literature on probabilistic context-
+free grammars (CFGs) we know precisely the
+conditions which ensure that (1) is true for a
+given CFG. This paper derives the conditions
+under which a given probabilistic TAG can be
+shown to be consistent.
+TAGs are important in the modelling of nat-
+ural language since they can be easily lexical-
+ized; moreover the trees associated with words
+can be used to encode argument and adjunct re-
+lations in various syntactic environments. This
+paper assumes some familiarity with the TAG
+formalism. (Joshi, 1988) and (Joshi and Sch-
+abes, 1992) are good introductions to the for-
+malism and its linguistic relevance. TAGs have
+
+been shown to have relations with both phrase-
+structure grammars and dependency grammars
+(Rambow and Joshi, 1995) and can handle
+(non-projective) long distance dependencies.
+Consistency of probabilistic TAGs has prac-
+tical signiﬁcance for the following reasons:
+• The conditions derived here can be used
+to ensure that probability models that use
+TAGs can be checked for deﬁciency.
+• Existing EM based estimation algorithms
+for probabilistic TAGs assume that the
+property of consistency holds (Schabes,
+1992). EM based algorithms begin with an
+initial (usually random) value for each pa-
+rameter.
+If the initial assignment causes
+the grammar to be inconsistent, then it-
+erative re-estimation might converge to an
+inconsistent grammar1.
+• Techniques used in this paper can be used
+to determine consistency for other proba-
+bility models based on TAGs (Carroll and
+Weir, 1997).
+2
+Notation
+In this section we establish some notational con-
+ventions and deﬁnitions that we use in this pa-
+per.
+Those familiar with the TAG formalism
+only need to give a cursory glance through this
+section.
+A
+probabilistic
+TAG
+is
+represented
+by
+(N, Σ, I, A, S, φ) where N, Σ are, respectively,
+non-terminal and terminal symbols. I ∪A is a
+set of trees termed as elementary trees. We take
+V to be the set of all nodes in all the elementary
+trees. For each leaf A ∈V , label(A) is an ele-
+ment from Σ ∪{ǫ}, and for each other node A,
+label(A) is an element from N. S is an element
+from N which is a distinguished start symbol.
+The root node A of every initial tree which can
+start a derivation must have label(A) = S.
+I are termed initial trees and A are auxil-
+iary trees which can rewrite a tree node A ∈V .
+This rewrite step is called adjunction. φ is a
+function which assigns each adjunction with a
+probability and denotes the set of parameters
+1 Note that for CFGs it has been shown in (Chaud-
+hari et al., 1983; S´anchez and Bened´i, 1997) that inside-
+outside reestimation can be used to avoid inconsistency.
+We will show later in the paper that the method used to
+show consistency in this paper precludes a straightfor-
+ward extension of that result for TAGs.
+in the model. In practice, TAGs also allow a
+leaf nodes A such that label(A) is an element
+from N. Such nodes A are rewritten with ini-
+tial trees from I using the rewrite step called
+substitution. Except in one special case, we
+will not need to treat substitution as being dis-
+tinct from adjunction.
+For t ∈I ∪A, A(t) are the nodes in tree
+t that can be modiﬁed by adjunction.
+For
+label(A) ∈N we denote Adj(label(A)) as the
+set of trees that can adjoin at node A ∈V .
+The adjunction of t into N ∈V is denoted by
+N 7→t. No adjunction at N ∈V is denoted
+by N 7→nil. We assume the following proper-
+ties hold for every probabilistic TAG G that we
+consider:
+1. G is lexicalized.
+There is at least one
+leaf node a that lexicalizes each elementary
+tree, i.e. a ∈Σ.
+2. G is proper. For each N ∈V ,
+φ(N 7→nil) +
+X
+t
+φ(N 7→t) = 1
+3. Adjunction is prohibited on the foot node
+of every auxiliary tree.
+This condition is
+imposed to avoid unnecessary ambiguity
+and can be easily relaxed.
+4. There is a distinguished non-lexicalized ini-
+tial tree τ such that each initial tree rooted
+by a node A with label(A) = S substitutes
+into τ to complete the derivation. This en-
+sures that probabilities assigned to the in-
+put string at the start of the derivation are
+well-formed.
+We use symbols S, A, B, . . . to range over V ,
+symbols a, b, c, . . . to range over Σ.
+We use
+t1, t2, . . . to range over I ∪A and ǫ to denote
+the empty string. We use Xi to range over all i
+nodes in the grammar.
+3
+Applying probability measures to
+Tree Adjoining Languages
+To gain some intuition about probability assign-
+ments to languages, let us take for example, a
+language well known to be a tree adjoining lan-
+guage:
+L(G) = {anbncndn|n ≥1}
+
+It seems that we should be able to use a func-
+tion ψ to assign any probability distribution to
+the strings in L(G) and then expect that we can
+assign appropriate probabilites to the adjunc-
+tions in G such that the language generated by
+G has the same distribution as that given by
+ψ.
+However a function ψ that grows smaller
+by repeated multiplication as the inverse of an
+exponential function cannot be matched by any
+TAG because of the constant growth property of
+TAGs (see (Vijay-Shanker, 1987), p. 104). An
+example of such a function ψ is a simple Pois-
+son distribution (2), which in fact was also used
+as the counterexample in (Booth and Thomp-
+son, 1973) for CFGs, since CFGs also have the
+constant growth property.
+ψ(anbncndn) =
+1
+e · n!
+(2)
+This shows that probabilistic TAGs, like CFGs,
+are constrained in the probabilistic languages
+that they can recognize or learn.
+As shown
+above, a probabilistic language can fail to have
+a generating probabilistic TAG.
+The reverse is also true:
+some probabilis-
+tic TAGs, like some CFGs, fail to have a
+corresponding probabilistic language, i.e. they
+are not consistent.
+There are two reasons
+why a probabilistic TAG could be inconsistent:
+“dirty” grammars, and destructive or incorrect
+probability assignments.
+“Dirty” grammars. Usually, when applied
+to language, TAGs are lexicalized and so prob-
+abilities assigned to trees are used only when
+the words anchoring the trees are used in a
+derivation.
+However, if the TAG allows non-
+lexicalized trees, or more precisely, auxiliary
+trees with no yield, then looping adjunctions
+which never generate a string are possible. How-
+ever, this can be detected and corrected by a
+simple search over the grammar. Even in lexi-
+calized grammars, there could be some auxiliary
+trees that are assigned some probability mass
+but which can never adjoin into another tree.
+Such auxiliary trees are termed unreachable and
+techniques similar to the ones used in detecting
+unreachable productions in CFGs can be used
+here to detect and eliminate such trees.
+Destructive
+probability
+assignments.
+This problem is a more serious one, and is the
+main subject of this paper. Consider the prob-
+abilistic TAG shown in (3)2.
+t1
+t2
+ǫ
+S1
+S2
+S3
+S∗
+φ(S1 7→t2) = 1.0
+φ(S2 7→t2) = 0.99
+φ(S2 7→nil) = 0.01
+φ(S3 7→t2) = 0.98
+φ(S3 7→nil) = 0.02
+a
+(3)
+Consider a derivation in this TAG as a genera-
+tive process. It proceeds as follows: node S1 in
+t1 is rewritten as t2 with probability 1.0. Node
+S2 in t2 is 99 times more likely than not to be
+rewritten as t2 itself, and similarly node S3 is 49
+times more likely than not to be rewritten as t2.
+This however, creates two more instances of S2
+and S3 with same probabilities. This continues,
+creating multiple instances of t2 at each level of
+the derivation process with each instance of t2
+creating two more instances of itself. The gram-
+mar itself is not malicious; the probability as-
+signments are to blame. It is important to note
+that inconsistency is a problem even though for
+any given string there are only a ﬁnite number
+of derivations, all halting. Consider the prob-
+ability mass function (pmf) over the set of all
+derivations for this grammar. An inconsistent
+grammar would have a pmf which assigns a large
+portion of probability mass to derivations that
+are non-terminating. This means there is a ﬁ-
+nite probability the generative process can enter
+a generation sequence which has a ﬁnite proba-
+bility of non-termination.
+4
+Conditions for Consistency
+A probabilistic TAG G is consistent if and only
+if:
+X
+v∈L(G)
+Pr(v) = 1
+(4)
+where Pr(v) is the probability assigned to a
+string in the language.
+If a grammar G does
+not satisfy this condition, G is said to be incon-
+sistent.
+To explain the conditions under which a prob-
+abilistic TAG is consistent we will use the TAG
+2 The subscripts are used as a simple notation to
+uniquely refer to the nodes in each elementary tree. They
+are not part of the node label for purposes of adjunction.
+
+in (5) as an example.
+A1
+a1
+B2
+B*
+a3
+A2
+B1
+A3
+a2
+A*
+t1
+t2
+t3
+φ(A1 7→t2) = 0.8
+φ(A1 7→nil) = 0.2
+φ(A2 7→t2) = 0.2
+φ(A2 7→nil) = 0.8
+φ(B1 7→t3) = 0.2
+φ(B1 7→nil) = 0.8
+φ(A3 7→t2) = 0.4
+φ(A3 7→nil) = 0.6
+φ(B2 7→t3) = 0.1
+φ(B2 7→nil) = 0.9
+(5)
+From this grammar, we compute a square ma-
+trix M which of size |V |, where V is the set
+of nodes in the grammar that can be rewrit-
+ten by adjunction. Each Mij contains the ex-
+pected value of obtaining node Xj when node
+Xi is rewritten by adjunction at each level of a
+TAG derivation. We call M the stochastic ex-
+pectation matrix associated with a probabilistic
+TAG.
+To get M for a grammar we ﬁrst write a ma-
+trix P which has |V | rows and |I ∪A| columns.
+An element Pij corresponds to the probability
+of adjoining tree tj at node Xi, i.e. φ(Xi 7→tj)3.
+P =
+A1
+A2
+B1
+A3
+B2
+t1
+t2
+t3
+
+
+0
+0.8
+0
+0
+0.2
+0
+0
+0
+0.2
+0
+0.4
+0
+0
+0
+0.1
+
+
+We then write a matrix N which has |I ∪A|
+rows and |V | columns. An element Nij is 1.0 if
+node Xj is a node in tree ti.
+N =
+t1
+t2
+t3
+A1
+A2
+B1
+A3
+B2
+
+
+1.0
+0
+0
+0
+0
+0
+1.0
+1.0
+1.0
+0
+0
+0
+0
+0
+1.0
+
+
+Then the stochastic expectation matrix M is
+simply the product of these two matrices.
+3 Note that P is not a row stochastic matrix. This
+is an important diﬀerence in the construction of M for
+TAGs when compared to CFGs. We will return to this
+point in §5.
+M = P · N =
+A1
+A2
+B1
+A3
+B2
+A1
+A2
+B1
+A3
+B2
+
+
+0
+0.8
+0.8
+0.8
+0
+0
+0.2
+0.2
+0.2
+0
+0
+0
+0
+0
+0.2
+0
+0.4
+0.4
+0.4
+0
+0
+0
+0
+0
+0.1
+
+
+By inspecting the values of M in terms of the
+grammar probabilities indicates that Mij con-
+tains the values we wanted, i.e. expectation of
+obtaining node Aj when node Ai is rewritten by
+adjunction at each level of the TAG derivation
+process.
+By construction we have ensured that the
+following theorem from (Booth and Thomp-
+son, 1973) applies to probabilistic TAGs.
+A
+formal justiﬁcation for this claim is given in
+the next section by showing a reduction of the
+TAG derivation process to a multitype Galton-
+Watson branching process (Harris, 1963).
+Theorem 4.1 A probabilistic grammar is con-
+sistent if the spectral radius ρ(M) < 1, where
+M is the stochastic expectation matrix com-
+puted from the grammar. (Booth and Thomp-
+son, 1973; Soule, 1974)
+This theorem provides a way to determine
+whether a grammar is consistent. All we need to
+do is compute the spectral radius of the square
+matrix M which is equal to the modulus of the
+largest eigenvalue of M. If this value is less than
+one then the grammar is consistent4. Comput-
+ing consistency can bypass the computation of
+the eigenvalues for M by using the following
+theorem by Gerˇsgorin (see (Horn and Johnson,
+1985; Wetherell, 1980)).
+Theorem 4.2 For
+any
+square
+matrix
+M,
+ρ(M) < 1 if and only if there is an n ≥1
+such that the sum of the absolute values of
+the elements of each row of Mn is less than
+one. Moreover, any n′ > n also has this prop-
+erty. (Gerˇsgorin, see (Horn and Johnson, 1985;
+Wetherell, 1980))
+4 The grammar may be consistent when the spectral
+radius is exactly one, but this case involves many special
+considerations and is not considered in this paper. In
+practice, these complicated tests are probably not worth
+the eﬀort.
+See (Harris, 1963) for details on how this
+special case can be solved.
+
+This makes for a very simple algorithm to
+check consistency of a grammar. We sum the
+values of the elements of each row of the stochas-
+tic expectation matrix M computed from the
+grammar. If any of the row sums are greater
+than one then we compute M2, repeat the test
+and compute M22 if the test fails, and so on un-
+til the test succeeds5. The algorithm does not
+halt if ρ(M) ≥1. In practice, such an algorithm
+works better in the average case since compu-
+tation of eigenvalues is more expensive for very
+large matrices. An upper bound can be set on
+the number of iterations in this algorithm. Once
+the bound is passed, the exact eigenvalues can
+be computed.
+For the grammar in (5) we computed the fol-
+lowing stochastic expectation matrix:
+M =
+
+
+0
+0.8
+0.8
+0.8
+0
+0
+0.2
+0.2
+0.2
+0
+0
+0
+0
+0
+0.2
+0
+0.4
+0.4
+0.4
+0
+0
+0
+0
+0
+0.1
+
+
+The ﬁrst row sum is 2.4. Since the sum of
+each row must be less than one, we compute the
+power matrix M2. However, the sum of one of
+the rows is still greater than 1. Continuing we
+compute M22.
+M22 =
+
+
+0
+0.1728
+0.1728
+0.1728
+0.0688
+0
+0.0432
+0.0432
+0.0432
+0.0172
+0
+0
+0
+0
+0.0002
+0
+0.0864
+0.0864
+0.0864
+0.0344
+0
+0
+0
+0
+0.0001
+
+
+This time all the row sums are less than one,
+hence ρ(M) < 1. So we can say that the gram-
+mar deﬁned in (5) is consistent. We can conﬁrm
+this by computing the eigenvalues for M which
+are 0, 0, 0.6, 0 and 0.1, all less than 1.
+Now consider the grammar (3) we had con-
+sidered in Section 3. The value of M for that
+grammar is computed to be:
+M(3) =
+S1
+S2
+S3
+S1
+S2
+S3
+
+
+0
+1.0
+1.0
+0
+0.99
+0.99
+0
+0.98
+0.98
+
+
+5 We compute M22 and subsequently only successive
+powers of 2 because Theorem 4.2 holds for any n′ > n.
+This permits us to use a single matrix at each step in
+the algorithm.
+The eigenvalues for the expectation matrix
+M computed for the grammar (3) are 0, 1.97
+and 0. The largest eigenvalue is greater than
+1 and this conﬁrms (3) to be an inconsistent
+grammar.
+5
+TAG Derivations and Branching
+Processes
+To show that Theorem 4.1 in Section 4 holds
+for any probabilistic TAG, it is suﬃcient to show
+that the derivation process in TAGs is a Galton-
+Watson branching process.
+A Galton-Watson branching process (Harris,
+1963) is simply a model of processes that have
+objects that can produce additional objects of
+the same kind, i.e. recursive processes, with cer-
+tain properties.
+There is an initial set of ob-
+jects in the 0-th generation which produces with
+some probability a ﬁrst generation which in turn
+with some probability generates a second, and
+so on. We will denote by vectors Z0, Z1, Z2, . . .
+the 0-th, ﬁrst, second, . . . generations. There
+are two assumptions made about Z0, Z1, Z2, . . .:
+1. The size of the n-th generation does not
+inﬂuence the probability with which any of
+the objects in the (n + 1)-th generation is
+produced.
+In other words, Z0, Z1, Z2, . . .
+form a Markov chain.
+2. The number of objects born to a parent
+object does not depend on how many other
+objects are present at the same level.
+We can associate a generating function for
+each level Zi. The value for the vector Zn is the
+value assigned by the n-th iterate of this gen-
+erating function. The expectation matrix M is
+deﬁned using this generating function.
+The theorem attributed to Galton and Wat-
+son speciﬁes the conditions for the probability
+of extinction of a family starting from its 0-th
+generation, assuming the branching process rep-
+resents a family tree (i.e, respecting the condi-
+tions outlined above). The theorem states that
+ρ(M) ≤1 when the probability of extinction is
+
+1.0.
+t1
+t2 (0)
+t2 (0)
+t2 (1.1)
+t3 (1)
+t3 (0)
+t2 (1.1)
+level 0
+level 1
+level 2
+level 3
+level 4
+(6)
+A2
+B1
+A2
+B1
+A3
+a2
+A
+a2
+A
+B2
+B
+B
+A2
+B1
+A3
+a2
+A
+a2
+a3
+a3
+A
+a1
+(7)
+The assumptions made about the generating
+process intuitively holds for probabilistic TAGs.
+(6), for example, depicts a derivation of the
+string a2a2a2a2a3a3a1 by a sequence of adjunc-
+tions in the grammar given in (5)6. The parse
+tree derived from such a sequence is shown in
+Fig. 7. In the derivation tree (6), nodes in the
+trees at each level i are rewritten by adjunction
+to produce a level i + 1. There is a ﬁnal level 4
+in (6) since we also consider the probability that
+a node is not rewritten further, i.e. Pr(A 7→nil)
+for each node A.
+We give a precise statement of a TAG deriva-
+tion process by deﬁning a generating function
+for the levels in a derivation tree.
+Each level
+i in the TAG derivation tree then corresponds
+to Zi in the Markov chain of branching pro-
+6 The numbers in parentheses next to the tree names
+are node addresses where each tree has adjoined into
+its parent.
+Recall the deﬁnition of node addresses in
+Section 2.
+cesses.
+This is suﬃcient to justify the use of
+Theorem 4.1 in Section 4. The conditions on
+the probability of extinction then relates to the
+probability that TAG derivations for a proba-
+bilistic TAG will not recurse inﬁnitely. Hence
+the probability of extinction is the same as the
+probability that a probabilistic TAG is consis-
+tent.
+For each Xj ∈V , where V is the set of nodes
+in the grammar where adjunction can occur,
+we deﬁne the k-argument adjunction generating
+function over variables s1, . . . , sk corresponding
+to the k nodes in V .
+gj(s1, . . . , sk) =
+X
+t∈Adj(Xj)∪{nil}
+φ(Xj 7→t) · sr1(t)
+1
+· · · srk(t)
+k
+where, rj(t) = 1 iﬀnode Xj is in tree t, rj(t) = 0
+otherwise.
+For example, for the grammar in (5) we get
+the following adjunction generating functions
+taking the variable s1, s2, s3, s4, s5 to represent
+the nodes A1, A2, B1, A3, B2 respectively.
+g1(s1, . . . , s5) =
+φ(A1 7→t2) · s2 · s3 · s4 + φ(A1 7→nil)
+g2(s1, . . . , s5) =
+φ(A2 7→t2) · s2 · s3 · s4 + φ(A2 7→nil)
+g3(s1, . . . , s5) =
+φ(B1 7→t3) · s5 + φ(B1 7→nil)
+g4(s1, . . . , s5) =
+φ(A3 7→t2) · s2 · s3 · s4 + φ(A3 7→nil)
+g5(s1, . . . , s5) =
+φ(B2 7→t3) · s5 + φ(B2 7→nil)
+The
+n-th
+level
+generating
+function
+Gn(s1, . . . , sk) is deﬁned recursively as fol-
+lows.
+G0(s1, . . . , sk)
+=
+s1
+G1(s1, . . . , sk)
+=
+g1(s1, . . . , sk)
+Gn(s1, . . . , sk)
+=
+Gn−1[g1(s1, . . . , sk), . . . ,
+gk(s1, . . . , sk)]
+For the grammar in (5) we get the following
+level generating functions.
+G0(s1, . . . , s5) = s1
+
+G1(s1, . . . , s5) = g1(s1, . . . , s5)
+=
+φ(A1 7→t2) · s2 · s3 · s4 + φ(A1 7→nil)
+=
+0.8 · s2 · s3 · s4 + 0.2
+G2(s1, . . . , s5) =
+φ(A2 7→t2)[g2(s1, . . . , s5)][g3(s1, . . . , s5)]
+[g4(s1, . . . , s5)] + φ(A2 7→nil)
+=
+0.08s2
+2s2
+3s2
+4s5 + 0.03s2
+2s2
+3s2
+4 + 0.04s2s3s4s5 +
+0.18s2s3s4 + 0.04s5 + 0.196
+. . .
+Examining
+this
+example,
+we
+can
+express
+Gi(s1, . . . , sk) as a sum Di(s1, . . . , sk) + Ci,
+where Ci is a constant and Di(·) is a polyno-
+mial with no constant terms.
+A probabilistic
+TAG will be consistent if these recursive equa-
+tions terminate, i.e. iﬀ
+limi→∞Di(s1, . . . , sk) →0
+We can rewrite the level generation functions in
+terms of the stochastic expectation matrix M,
+where each element mi,j of M is computed as
+follows (cf. (Booth and Thompson, 1973)).
+mi,j = ∂gi(s1, . . . , sk)
+∂sj
+
+s1,...,sk=1
+(8)
+The limit condition above translates to the con-
+dition that the spectral radius of M must be
+less than 1 for the grammar to be consistent.
+This shows that Theorem 4.1 used in Sec-
+tion 4 to give an algorithm to detect inconsis-
+tency in a probabilistic holds for any given TAG,
+hence demonstrating the correctness of the al-
+gorithm.
+Note that the formulation of the adjunction
+generating function means that the values for
+φ(X 7→nil) for all X ∈V do not appear in
+the expectation matrix. This is a crucial diﬀer-
+ence between the test for consistency in TAGs
+as compared to CFGs. For CFGs, the expecta-
+tion matrix for a grammar G can be interpreted
+as the contribution of each non-terminal to the
+derivations for a sample set of strings drawn
+from L(G). Using this it was shown in (Chaud-
+hari et al., 1983) and (S´anchez and Bened´i,
+1997) that a single step of the inside-outside
+algorithm implies consistency for a probabilis-
+tic CFG. However, in the TAG case, the inclu-
+sion of values for φ(X 7→nil) (which is essen-
+tial if we are to interpret the expectation ma-
+trix in terms of derivations over a sample set of
+strings) means that we cannot use the method
+used in (8) to compute the expectation matrix
+and furthermore the limit condition will not be
+convergent.
+6
+Conclusion
+We have shown in this paper the conditions
+under which a given probabilistic TAG can be
+shown to be consistent. We gave a simple al-
+gorithm for checking consistency and gave the
+formal justiﬁcation for its correctness. The re-
+sult is practically signiﬁcant for its applications
+in checking for deﬁciency in probabilistic TAGs.
+References
+T. L. Booth and R. A. Thompson. 1973. Applying prob-
+ability measures to abstract languages. IEEE Trans-
+actions on Computers, C-22(5):442–450, May.
+J. Carroll and D. Weir. 1997. Encoding frequency in-
+formation in lexicalized grammars. In Proc. 5th Int’l
+Workshop on Parsing Technologies IWPT-97, Cam-
+bridge, Mass.
+R. Chaudhari, S. Pham, and O. N. Garcia. 1983. Solu-
+tion of an open problem on probabilistic grammars.
+IEEE Transactions on Computers, C-32(8):748–750,
+August.
+T. E. Harris. 1963. The Theory of Branching Processes.
+Springer-Verlag, Berlin.
+R. A. Horn and C. R. Johnson. 1985. Matrix Analysis.
+Cambridge University Press, Cambridge.
+A. K. Joshi and Y. Schabes. 1992. Tree-adjoining gram-
+mar and lexicalized grammars.
+In M. Nivat and
+A. Podelski, editors, Tree automata and languages,
+pages 409–431. Elsevier Science.
+A. K. Joshi. 1988. An introduction to tree adjoining
+grammars. In A. Manaster-Ramer, editor, Mathemat-
+ics of Language. John Benjamins, Amsterdam.
+O. Rambow and A. Joshi. 1995. A formal look at de-
+pendency grammars and phrase-structure grammars,
+with special consideration of word-order phenomena.
+In Leo Wanner, editor, Current Issues in Meaning-
+Text Theory. Pinter, London.
+J.-A. S´anchez and J.-M. Bened´i. 1997. Consistency of
+stochastic context-free grammars from probabilistic
+estimation based on growth transformations. IEEE
+Transactions on Pattern Analysis and Machine Intel-
+ligence, 19(9):1052–1055, September.
+Y. Schabes. 1992. Stochastic lexicalized tree-adjoining
+grammars. In Proc. of COLING ’92, volume 2, pages
+426–432, Nantes, France.
+S. Soule. 1974. Entropies of probabilistic grammars. Inf.
+Control, 25:55–74.
+K. Vijay-Shanker.
+1987.
+A Study of Tree Adjoining
+Grammars. Ph.D. thesis, Department of Computer
+and Information Science, University of Pennsylvania.
+C. S. Wetherell. 1980. Probabilistic languages: A re-
+view and some open questions. Computing Surveys,
+12(4):361–379.

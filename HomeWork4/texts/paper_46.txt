@@ -1,0 +1,1003 @@
+arXiv:cs/9907012v1  [cs.CL]  8 Jul 1999
+Selective Magic HPSG Parsing
+Guido Minnen∗
+Cognitive and Computing Sciences, University of Sussex
+Falmer, Brighton BN1 9QH
+United Kingdom
+Guido.Minnen@cogs.susx.ac.uk
+www.cogs.susx.ac.uk/lab/nlp/minnen/minnen.html
+Abstract
+We propose a parser for constraint-logic
+grammars implementing HPSG that com-
+bines the advantages of dynamic bottom-
+up and advanced top-down control.
+The
+parser allows the user to apply magic com-
+pilation to speciﬁc constraints in a gram-
+mar which as a result can be processed dy-
+namically in a bottom-up and goal-directed
+fashion. State of the art top-down process-
+ing techniques are used to deal with the
+remaining constraints. We discuss various
+aspects concerning the implementation of
+the parser as part of a grammar develop-
+ment system.
+In Proceedings of the 9th Conference of the EACL, Bergen, Norway, June 1999.
+1
+Introduction
+In case space requirements of dynamic parsing of-
+ten outweigh the beneﬁt of not duplicating sub-
+computations. We propose a parser that avoids this
+drawback through combining the advantages of dy-
+namic bottom-up and advanced top-down control.1
+The underlying idea is to achieve faster parsing by
+avoiding tabling on sub-computations which are not
+expensive. The so-called selective magic parser al-
+lows the user to apply magic compilation to spe-
+ciﬁc constraints in a grammar which as a result can
+be processed dynamically in a bottom-up and goal-
+directed fashion. State of the art top-down process-
+ing techniques are used to deal with the remaining
+constraints.
+Magic is a compilation technique originally de-
+veloped for goal-directed bottom-up processing of
+logic programs. See, among others, (Ramakrishnan
+et al.
+1992).
+As shown in (Minnen, 1996) magic
+∗The presented research was carried out at the Uni-
+versity of T¨ubingen, Germany, as part of the Sonder-
+forschungsbereich 340.
+1A more detailed discussion of various aspects of the
+proposed parser can be found in (Minnen, 1998).
+is an interesting technique with respect to natural
+language processing as it incorporates ﬁltering into
+the logic underlying the grammar and enables el-
+egant control independent ﬁltering improvements.
+In this paper we investigate the selective applica-
+tion of magic to typed feature grammars a type of
+constraint-logic grammar based on Typed Feature
+Logic (T FL; G¨otz, 1995).
+Typed feature gram-
+mars can be used as the basis for implementations
+of Head-driven Phrase Structure Grammar (HPSG;
+Pollard and Sag, 1994) as discussed in (G¨otz and
+Meurers, 1997a) and (Meurers and Minnen, 1997).
+Typed feature grammar constraints that are inex-
+pensive to resolve are dealt with using the top-
+down interpreter of the ConTroll grammar develop-
+ment system (G¨otz and Meurers, 1997b) which uses
+an advanced search function, an advanced selection
+function and incorporates a coroutining mechanism
+which supports delayed interpretation.
+The proposed parser is related to the so-called
+Lemma Table deduction system (Johnson and D¨orre,
+1995) which allows the user to specify whether top-
+down sub-computations are to be tabled. In contrast
+to Johnson and D¨orre’s deduction system, though,
+the selective magic parsing approach combines top-
+down and bottom-up control strategies. As such it
+resembles the parser of the grammar development
+system Attribute Language Engine (ALE) of (Car-
+penter and Penn, 1994).
+Unlike the ALE parser,
+though, the selective magic parser does not presup-
+pose a phrase structure backbone and is more ﬂexi-
+ble as to which sub-computations are tabled/ﬁltered.
+2
+Bottom-up Interpretation of
+Magic-compiled Typed Feature
+Grammars
+We describe typed feature grammars and discuss
+their use in implementing HPSG grammars. Subse-
+quently we present magic compilation of typed fea-
+
+ture grammars on the basis of an example and in-
+troduce a dynamic bottom-up interpreter that can
+be used for goal-directed interpretation of magic-
+compiled typed feature grammars.
+2.1
+Typed Feature Grammars
+A typed feature grammar consists of a signature and
+a set of deﬁnite clauses over the constraint language
+of equations of T FL (G¨otz, 1995) terms (H¨ohfeld
+and Smolka, 1988) which we will refer to as T FL
+deﬁnite clauses. Equations over T FL terms can be
+solved using (graph) uniﬁcation provided they are in
+normal form. (G¨otz, 1994) describes a normal form
+for T FL terms, where typed feature structures are
+interpreted as satisﬁable normal form T FL terms.2
+The signature consists of a type hierarchy and a set
+of appropriateness conditions.
+Example 1 The signature speciﬁed in ﬁgure 1
+and 2 and the T FL deﬁnite clauses in ﬁgure 3 con-
+stitute an example of a typed feature grammar.
+We
+relation
+append
+ARG1
+ARG2
+ARG3
+list
+list
+list
+constituent ARG1
+sign
+Figure 2: Example of a typed feature grammar sig-
+nature (part 2)
+write T FL terms in normal form, i. e., as typed fea-
+ture structures. In addition, uninformative feature
+speciﬁcations are ignored and typing is left implicit
+when immaterial to the example at hand.
+Equa-
+tions between typed feature structures are removed
+by simple substitution or tags indicating structure
+sharing. Notice that we also use non-numerical tags
+such as
+Xs
+and
+XsYs . In general all boxed items
+indicate structure sharing. For expository reasons
+we represent the ARGn features of the append re-
+lation as separate arguments.
+Typed feature grammars can be used as the basis
+for implementations of Head-driven Phrase Struc-
+ture Grammar (Pollard and Sag, 1994).3 (Meurers
+and Minnen, 1997) propose a compilation of lexical
+rules into T FL deﬁnite clauses which are used to
+restrict lexical entries. (G¨otz and Meurers, 1997b)
+2This view of typed feature structures diﬀers from
+the perspective on typed feature structures as modeling
+partial information as in (Carpenter, 1992). Typed fea-
+ture structures as normal form T FL terms are merely
+syntactic objects.
+3See (King, 1994) for a discussion of the appropri-
+ateness of T FL for HPSG and a comparison with other
+feature logic approaches designed for HPSG.
+(1) constituent(
+"
+CAT
+s
+PHON
+1
+SEM
+5
+#
+):-
+constituent(
+
+
+CAT
+np
+PHON
+2
+AGR
+4
+SEM
+6
+
+),
+constituent(
+
+
+CAT
+v
+PHON
+3
+AGR
+4
+SEM
+5 
+SUBJ
+6 
+
+),
+append( 2 , 3 , 1 ).
+(2) constituent(
+
+
+CAT
+np
+PHON ⟨mary ⟩
+AGR
+third-sing
+SEM
+mary lf
+
+).
+(3) constituent(
+
+
+CAT
+v
+PHON ⟨sleeps⟩
+AGR
+third-sing
+SEM
+sleep
+
+).
+(4) append(⟨⟩,
+Ys ,
+Ys ).
+(5) append(⟨X |
+Xs ⟩,
+Ys , ⟨X |
+XsYs ⟩):-
+append( Xs ,
+Ys ,
+XsYs ).
+Figure 3: Example of a set of T FL deﬁnite clauses
+describe a method for compiling implicational con-
+straints into typed feature grammars and interleav-
+ing them with relational constraints.4
+Because of
+space limitations we have to refrain from an exam-
+ple.
+The ConTroll grammar development system
+as described in (G¨otz and Meurers, 1997b) imple-
+ments the above mentioned techniques for compiling
+an HPSG theory into typed feature grammars.
+2.2
+Magic Compilation
+Magic is a compilation technique for goal-directed
+bottom-up processing of logic programs. See, among
+others, (Ramakrishnan et al. 1992). Because magic
+compilation does not refer to the speciﬁc constraint
+language adopted, its application is not limited to
+logic programs/grammars: It can be applied to rela-
+tional extensions of other constraint languages such
+as typed feature grammars without further adap-
+tions.
+Due to space limitations we discuss magic com-
+pilation by example only. The interested reader is
+referred to (Nilsson and Ma luszynski, 1995) for an
+introduction.
+Example 2 We illustrate magic compilation of
+typed feature grammars with respect to deﬁnite
+clause 1 in ﬁgure 3.
+Consider the T FL deﬁnite
+4(G¨otz, 1995) proves that this compilation method is
+sound in the general case and deﬁnes the large class of
+type constraints for which it is complete.
+
+T
+string
+list
+sign
+mary
+sleeps
+relation
+elist
+agr
+sem
+PHON
+AGR
+SEM
+list
+agr
+sem
+HD
+T
+third-sing
+sleep
+mary_lf
+SUBJ  sem
+nelist
+TL
+list
+cat
+s
+np
+CAT
+cat
+v
+Figure 1: Example of a typed feature grammar signature (part 1)
+clause in ﬁgure 4. As a result of magic compilation
+constituent( magic
+"
+CAT
+s
+PHON
+1
+SEM
+5
+#
+):-
+magic constituent( magic ),
+constituent(
+
+
+CAT
+np
+PHON
+2
+AGR
+4
+SEM
+6
+
+),
+constituent(
+
+
+CAT
+v
+PHON
+3
+AGR
+4
+SEM
+5 
+SUBJ
+6 
+
+),
+append( 2 , 3 , 1 ).
+Figure 4: Magic variant of deﬁnite clause 1 in ﬁg-
+ure 3
+a magic literal is added to the right-hand side of the
+original deﬁnite clause. Intuitively understood, this
+magic literal “guards” the application of the deﬁnite
+clause. The clause is applied only when there exists
+a fact that uniﬁes with this magic literal.5 The re-
+sulting deﬁnite clause is also referred to as the magic
+variant of the original deﬁnite clause.
+The deﬁnite clause in ﬁgure 5 is the so-called seed
+which is used to make the bindings as provided by
+the initial goal available for bottom-up processing.
+In this case the seed corresponds to the initial goal
+of parsing the string ‘mary sleeps’. Intuitively un-
+derstood, the seed makes available the bindings of
+the initial goal to the magic variants of the deﬁ-
+5A fact can be a unit clause, i. e., a T FL deﬁnite
+clause without right-hand side literals, from the gram-
+mar or derived using the rules in the grammar. In the
+latter case one also speaks of a passive edge.
+magic constituent(
+"
+CAT
+s
+PHON ⟨mary, sleeps⟩
+SEM
+sem
+#
+).
+Figure 5: Seed corresponding to the initial goal of
+parsing the string ‘mary sleeps’
+nite clauses deﬁning a particular initial goal; in this
+case the magic variant of the deﬁnite clause deﬁn-
+ing a constituent of category ‘s’. Only when their
+magic literal uniﬁes with the seed are these clauses
+applied.6
+The so-called magic rules in ﬁgure 6 are derived in
+order to be able to use the bindings provided by the
+seed to derive new facts that provide the bindings
+which allow for a goal-directed application of the
+deﬁnite clauses in the grammar not directly deﬁn-
+ing the initial goal. Deﬁnite clause 3, for example,
+can be used to derive a magic append fact which
+percolates the relevant bindings of the seed/initial
+goal to restrict the application of the magic variant
+of deﬁnite clauses 4 and 5 in ﬁgure 3 (which are not
+displayed).
+2.3
+Semi-naive Bottom-up Interpretation
+Magic-compiled logic programs/grammars can be in-
+terpreted in a bottom-up fashion without losing any
+of the goal-directedness normally associated with
+top-down interpretation using a so-called semi-naive
+bottom-up interpreter: A dynamic interpreter that
+tables only complete intermediate results, i. e., facts
+or passive edges, and uses an agenda to avoid re-
+dundant sub-computations. The Prolog predicates
+6The creation of the seed can be postponed until run
+time, such that the grammar does not need to be com-
+piled for every possible initial goal.
+
+(1) magic constituent(
+
+
+CAT
+np
+PHON list
+AGR
+agr
+SEM
+sem
+
+):-
+magic constituent(
+"
+CAT
+s
+PHON list
+SEM
+sem
+#
+).
+(2) magic constituent(
+
+
+CAT
+v
+PHON list
+AGR
+4
+SEM
+5 
+SUBJ
+6 
+
+):-
+magic constituent(
+"
+CAT
+s
+PHON list
+SEM
+5
+#
+),
+constituent(
+
+
+CAT
+np
+PHON list
+AGR
+4
+SEM
+6
+
+),
+(3) magic append( 2 , 3 , 1 ):-
+magic constituent(
+"
+CAT
+s
+PHON
+1
+SEM
+5
+#
+),
+constituent(
+
+
+CAT
+np
+PHON
+2
+AGR
+4
+SEM
+6
+
+),
+constituent(
+
+
+CAT
+v
+PHON
+3
+AGR
+4
+SEM
+5 
+SUBJ
+6 
+
+).
+Figure 6: Magic rules resulting from applying magic
+compilation to deﬁnite clause 1 in ﬁgure 3
+in ﬁgure 7 implement a semi-naive bottom-up in-
+terpreter.7
+In this interpreter both the table and
+the agenda are represented using lists.8 The agenda
+keeps track of the facts that have not yet been used
+to update the table. It is important to notice that in
+order to use the interpreter for typed feature gram-
+mars it has to be adapted to perform graph uniﬁca-
+tion.9 We refrain from making the necessary adap-
+tions to the code for expository reasons.
+The table is initialized with the facts from the
+grammar.
+Facts are combined using a operation
+called match. The match operation uniﬁes all but
+one of the right-hand side literals of a deﬁnite clause
+7Deﬁnite
+clauses
+serving
+as
+data
+are
+en-
+coded
+using
+the
+predicate
+definite clause/1:
+definite clause((Lhs :- Rhs)).,
+where
+Rhs
+is
+a
+(possibly empty) list of literals.
+8There are various other—more eﬃcient—ways to im-
+plement a dynamic control strategy in Prolog. See, for
+example, (Shieber et al., 1995).
+9A term encoding of typed feature structures would
+enable the use of term uniﬁcation instead. See, for ex-
+ample, (Gerdemann, 1995).
+in the grammar with facts in the table. The remain-
+ing right-hand side literal is uniﬁed with a newly
+derived fact, i. e., a fact from the agenda. By do-
+ing this, repeated derivation of facts from the same
+earlier derived facts is avoided.
+semi naive interpret(Goal):-
+initialization(Agenda,Table0),
+update table(Agenda,Table0,Table),
+member(edge(Goal,[]),Table).
+update table([],Table,Table).
+update table([Edge|Agenda0],Table0,Table):-
+update table w edge(Edge,Edges,
+Table0,Table1),
+append(Edges,Agenda0,Agenda),
+update table(Agenda,Table1,Table).
+update table w edge(Edge,Edges,Table0,Table):-
+findall( NewEdge,
+match(Edge,NewEdge,Table0),
+Edges),
+store(Edges,Table0,Table).
+store([],Table,Table):-
+store([Edge|Edges],Table0,Table):-
+member(GenEdge,Table0),
+\+ subsumes(GenEdge,Edge),
+store(Edges,[Edge|Table0],Table).
+store([ |Edges],Table0,Table):-
+store(Edges,Table0,Table).
+initialization(Edges,Edges):-
+findall( edge(Head,[]),
+definite clause((Head:- [])),
+Edges).
+completion(Edge,edge(Goal,[]),Table):-
+definite clause((Goal :- Body)),
+Edge = edge(F,[]),
+select(F,Body,R),
+edges(R,Table).
+edges([], ).
+edges([Lit|Lits],Table):-
+member(edge(Lit,[]),Table),
+edges(Lits,Table).
+Figure 7: Semi-naive bottom-up interpreter
+3
+Selective Magic HPSG Parsing
+In case of large grammars the huge space require-
+ments of dynamic processing often nullify the ben-
+eﬁt of tabling intermediate results. By combining
+control strategies and allowing the user to specify
+how to process particular constraints in the gram-
+mar the selective magic parser avoids this problem.
+This solution is based on the observation that there
+are sub-computations that are relatively cheap and
+as a result do not need tabling (Johnson and D¨orre,
+1995; van Noord, 1997).
+
+3.1
+Parse Type Speciﬁcation
+Combining control strategies depends on a way to
+diﬀerentiate between types of constraints. For ex-
+ample, the ALE parser (Carpenter and Penn, 1994)
+presupposes a phrase structure backbone which can
+be used to determine whether a constraint is to be
+interpreted bottom-up or top-down. In the case of
+selective magic parsing we use so-called parse types
+which allow the user to specify how constraints in
+the grammar are to be interpreted. A literal (goal)
+is considered a parse type literal (goal) if it has as its
+single argument a typed feature structure of a type
+speciﬁed as a parse type.10
+All types in the type hierarchy can be used as
+parse types. This way parse type speciﬁcation sup-
+ports a ﬂexible ﬁltering component which allows us
+to experiment with the role of ﬁltering. However, in
+the remainder we will concentrate on a speciﬁc class
+of parse types: We assume the speciﬁcation of type
+sign and its sub-types as parse types.11 This choice
+is based on the observation that the constraints on
+type sign and its sub-types play an important guid-
+ing role in the parsing process and are best inter-
+preted bottom-up given the lexical orientation of
+HPSG. The parsing process corresponding to such
+a parse type speciﬁcation is represented schemati-
+cally in ﬁgure 8. Starting from the lexical entries,
+word
+word
+word
+non-parse type 
+    goals
+non-parse type 
+    goals
+Figure 8: Schematic representation of the selective
+magic parsing process
+i. e., the T FL deﬁnite clauses that specify the word
+objects in the grammar, phrases are built bottom-
+up by matching the parse type literals of the deﬁ-
+nite clauses in the grammar against the edges in the
+10The notion of a parse type literal is closely related to
+that of a memo literal as in (Johnson and D¨orre, 1995).
+11When a type is speciﬁed as a parse type, all its sub-
+types are considered as parse types as well. This is nec-
+essary as otherwise there may exist magic variants of
+deﬁnite clauses deﬁning a parse type goal for which no
+magic facts can be derived which means that the magic
+literal of these clauses can be interpreted neither top-
+down nor bottom-up.
+table. The non-parse type literals are processed ac-
+cording to the top-down control strategy described
+in section 3.3.
+3.2
+Selective Magic Compilation
+In order to process parse type goals according to a
+semi-naive magic control strategy, we apply magic
+compilation selectively.
+Only the T FL deﬁnite
+clauses in a typed feature grammar which deﬁne
+parse type goals are subject to magic compilation.
+The compilation applied to these clauses is identical
+to the magic compilation illustrated in section 2.1
+except that we derive magic rules only for the right-
+hand side literals in a clause which are of a parse
+type. The deﬁnite clauses in the grammar deﬁning
+non-parse type goals are not compiled as they will be
+processed using the top-down interpreter described
+in the next section.
+3.3
+Advanced Top-down Control
+Non-parse type goals are interpreted using the stan-
+dard interpreter of the ConTroll grammar develop-
+ment system (G¨otz and Meurers, 1997b) as devel-
+oped and implemented by Thilo G¨otz.
+This ad-
+vanced top-down interpreter uses a search function
+that allows the user to specify the information on
+which the deﬁnite clauses in the grammar are in-
+dexed.
+An important advantage of deep multiple
+indexing is that the linguist does not have to take
+into account of processing criteria with respect to
+the organization of her/his data as is the case with
+a standard Prolog search function which indexes on
+the functor of the ﬁrst argument.
+Another important feature of the top-down inter-
+preter is its use of a selection function that interprets
+deterministic goals, i. e., goals which unify with the
+left-hand side literal of exactly one deﬁnite clause in
+the grammar, prior to non-deterministic goals. This
+is often referred to as incorporating deterministic
+closure (D¨orre, 1993). Deterministic closure accom-
+plishes a reduction of the number of choice points
+that need to be set during processing to a minimum.
+Furthermore, it leads to earlier failure detection.
+Finally, the used top-down interpreter implements
+a powerful coroutining mechanism:12 At run time
+the processing of a goal is postponed in case it is
+insuﬃciently instantiated. Whether or not a goal is
+suﬃciently instantiated is determined on the basis of
+so-called delay patterns.13 These are speciﬁcations
+12Coroutining appears under many diﬀerent guises,
+like for example, suspension, residuation, (goal) freezing,
+and blocking. See also (Colmerauer, 1982; Naish, 1986).
+13In the literature delay patterns are sometimes also
+referred to as wait declarations or block statements.
+
+provided by the user that indicate which restrict-
+ing information has to be available before a goal is
+processed.
+3.4
+Adapted Semi-naive Bottom-up
+Interpretation
+The deﬁnite clauses resulting from selective magic
+transformation are interpreted using a semi-naive
+bottom-up interpreter that is adapted in two re-
+spects.
+It ensures that non-parse type goals are
+interpreted using the advanced top-down inter-
+preter, and it allows non-parse type goals that re-
+main delayed locally to be passed in and out of
+sub-computations in a similar fashion as proposed
+by (Johnson and D¨orre, 1995). In order to accom-
+modate these changes the adapted semi-naive inter-
+preter enables the use of edges which specify delayed
+goals.
+Figure 9 illustrates the adapted match operation.
+The ﬁrst deﬁning clause of match/3 passes delayed
+match(Edge,edge(Goal,Delayed),Table):-
+definite clause((Goal :- Body)),
+select(Lit,Body,Lits),
+parse type(Lit),
+Edge = edge(Lit,Delayed0),
+edges(Lit,Table,Delayed0,TopDown),
+advanced td interpret(TopDown,Delayed).
+match(Edge,edge(Goal,Delayed),Table):-
+definite clause((Goal :- TopDown)),
+advanced td interpret(TopDown,Delayed).
+Figure 9: Adapted deﬁnition of match/3
+and non-parse type goals of the deﬁnite clause under
+consideration to the advanced top-down interpreter
+via the call to advanced td interpret/2 as the list
+of goals TopDown.14 The second deﬁning clause of
+match/3 is added to ensure all right-hand side lit-
+erals are directly passed to the advanced top-down
+interpreter if none of them are of a parse type.
+Allowing edges which specify delayed goals neces-
+sitates the adaption of the deﬁnition of edges/3.
+When a parse type literal is matched against an
+edge in the table, the delayed goals speciﬁed by that
+edge need to be passed to the top-down interpreter.
+Consider the deﬁnition of the predicate edges in
+ﬁgure 11. The third argument of the deﬁnition of
+edges/4 is used to collect delayed goals. When there
+are no more parse type literals in the right-hand side
+of the deﬁnite clause under consideration, the second
+14The deﬁnition of match/3 assumes that there exists
+a strict ordering of the right-hand side literals in the
+deﬁnite clauses in the grammar, i. e., parse type literals
+always preced e non-parse type literals.
+edges([Lit|Lits],Table,Delayed0,TopDown):-
+parse type(Lit),
+member(edge(Lit,Delayed1),Table),
+append(Delayed0,Delayed1,Delayed).
+edges(Lit,Table,Delayed,TopDown).
+edges([], ,Delayed,TopDown):-
+append(Delayed,Lit,TopDown).
+Figure 11: Adapted deﬁnition of edges/4
+deﬁning clause of edges/4 appends the collected de-
+layed goals to the remaining non-parse type literals.
+Subsequently, the resulting list of literals is passed
+up again for advanced top-down interpretation.
+4
+Implementation
+The described parser was implemented as part of
+the ConTroll grammar development system (G¨otz
+and Meurers, 1997b).
+Figure 10 shows the over-
+all setup of the ConTroll magic component.
+The
+Controll magic component presupposes a parse type
+speciﬁcation and a set of delay patterns to deter-
+mine when non-parse type constraints are to be in-
+terpreted. At run-time the goal-directedness of the
+selective magic parser is further increased by means
+of using the phonology of the natural language ex-
+pression to be parsed as speciﬁed by the initial goal
+to restrict the number of facts that are added to the
+table during initialization. Only those facts in the
+grammar corresponding to lexical entries that have
+a value for their phonology feature that appears as
+part of the input string are used to initialize the ta-
+ble.
+The ConTroll magic component was tested with
+a larger (> 5000 lines) HPSG grammar of a size-
+able fragment of German. This grammar provides an
+analysis for simple and complex verb-second, verb-
+ﬁrst and verb-last sentences with scrambling in the
+mittelfeld, extraposition phenomena, wh-movement
+and topicalization, integrated verb-ﬁrst parentheti-
+cals, and an interface to an illocution theory, as well
+as the three kinds of inﬁnitive constructions, nomi-
+nal phrases, and adverbials (Hinrichs et al., 1997).
+As the test grammar combines sub-strings in a
+non-concatenative fashion, a preprocessor is used
+that chunks the input string into linearization do-
+mains. This way the standard ConTroll interpreter
+(as described in section 3.3) achieves parsing times
+of around 1-5 seconds for 5 word sentences and 10–
+60 seconds for 12 word sentences.15
+The use of
+magic compilation on all grammar constraints, i.e.,
+15Parsing with such a grammar is diﬃcult in any sys-
+tem as it does neither have nor allow the extraction of a
+phrase structure backbone.
+
+input:
+output:
+magic compilation
+on parse type
+preselection
+of relevant
+lexical entries
+magic-compiled
+grammar
+relevant 
+lexical entries
+parse type 
+specification
+bottom-up interpretation
+top-down interpretation
+typed feature grammar
+clauses
+of parse type clauses
+solutions to 
+initial  goal
+semi-naive
+extended
+combined with advanced
+initial goal
+Figure 10: Setup of the ConTroll magic component
+tabling of all sub-computations, leads to an vast in-
+crease of parsing times. The selective magic HPSG
+parser, however, exhibits a signiﬁcant speedup in
+many cases.
+For example, parsing with the mod-
+ule of the grammar implementing the analysis of
+nominal phrases is up to nine times faster. At the
+same time though selective magic HPSG parsing is
+sometimes signiﬁcantly slower. For example, parsing
+of particular sentences exhibiting adverbial subordi-
+nate clauses and long extraction is sometimes more
+than nine times slower. We conjecture that these
+ambiguous results are due to the use of coroutin-
+ing: As the test grammar was implemented using
+the standard ConTroll interpreter, the delay pat-
+terns used presuppose a data-ﬂow corresponding to
+advanced top-down control and are not ﬁne-tuned
+with respect to the data-ﬂow corresponding to the
+selective magic parser.
+Coroutining is a ﬂexible and powerful facility used
+in many grammar development systems and it will
+probably remain indispensable in dealing with many
+control problems despite its various disadvantages.16
+The test results discussed above indicate that the
+comparison of parsing strategies can be seriously
+hampered by ﬁne-tuning parsing using delay pat-
+terns.
+We believe therefore that further research
+into the systematics underlying coroutining would
+be desirable.
+5
+Concluding Remarks
+We described a selective magic parser for typed fea-
+ture grammars implementing HPSG that combines
+the advantages of dynamic bottom-up and advanced
+top-down control. As a result the parser avoids the
+eﬃciency problems resulting from the huge space re-
+quirements of storing intermediate results in parsing
+16Coroutining has a signiﬁcant run-time overhead
+caused by the necessity to check the instantiation sta-
+tus of a literal/goal. In addition, it demands the proce-
+dural annotation of an otherwise declarative grammar.
+Finally, coroutining presupposes that a grammar writer
+possesses substantial processing expertise.
+
+with large grammars. The parser allows the user to
+apply magic compilation to speciﬁc constraints in
+a grammar which as a result can be processed dy-
+namically in a bottom-up and goal-directed fashion.
+State of the art top-down processing techniques are
+used to deal with the remaining constraints.
+We
+discussed various aspects concerning the implemen-
+tation of the parser which was developed as part of
+the grammar development system ConTroll.
+Acknowledgments
+The author gratefully acknowledges the support of
+the SFB 340 project B4 “From Constraints to Rules:
+Eﬃcient Compilation of HPSG” funded by the Ger-
+man Science Foundation, and the project “PSET:
+Practical Simpliﬁcation of English Text”, a three-
+year project funded by the UK Engineering and
+Physical Sciences Research Council (GR/L53175),
+and Apple Computer Inc..
+The author wishes to
+thank Dale Gerdemann and Erhard Hinrichs and the
+anonymous reviewers for comments and discussion.
+Of course, the author is responsible for all remaining
+errors.
+References
+Bob Carpenter and Gerald Penn.
+1994.
+ALE –
+The Attribute Logic Engine, User’s guide, version
+2.0.2. Technical report, Carnegie Mellon Univer-
+sity, Pittsburgh, Pennsylvania, USA.
+Bob Carpenter.
+1992.
+The Logic of Typed Fea-
+ture Structures - With Applications to Uniﬁcation
+Grammars, Logic Programs and Constraint Res-
+olution. Cambridge University Press, New York,
+USA.
+Alain Colmerauer.
+1982.
+PrologII: Manuel de
+r´ef´erence et mod`ele th´eorique. Technical report,
+Groupe d’Intelligence Artiﬁcielle, Facult´e de Sci-
+ences de Luminy, Marseille, France.
+Jochen D¨orre. 1993. Generalizing Earley Deduction
+for Constraint-based Grammars. In Jochen D¨orre
+and Michael Dorna (eds.), 1993. Computational
+Aspects of Constraint-Based Linguistic Descrip-
+tion I. DYANA-2, Deliverable R1.2.A.
+Dale Gerdemann. 1995. Term Encoding of Typed
+Feature Structures. In Proceedings of the Fourth
+International Workshop on Parsing Technologies,
+Prague, Czech Republic.
+Thilo G¨otz and Detmar Meurers.
+1997a.
+Inter-
+leaving Universal Principles and Relational Con-
+straints over Typed Feature Logic. In ACL/EACL
+Proceedings, Madrid, Spain.
+Thilo G¨otz and Detmar Meurers.
+1997b.
+The
+ConTroll System as Large Grammar Development
+Platform. In Proceedings of the ACL Workshop on
+Computational Environments for Grammar De-
+velopment and Linguistic Engineering, Madrid,
+Spain.
+Thilo G¨otz. 1994. A Normal Form for Typed Fea-
+ture Structures. Technical report SFB 340 nr. 40,
+University of T¨ubingen, Germany.
+Thilo G¨otz.
+1995.
+Compiling HPSG Constraint
+Grammars into Logic Programs. In Proceedings
+of the Workshop on Computational Logic for Nat-
+ural Language Processing, Edinburgh, UK.
+Erhard Hinrichs, Detmar Meurers, Frank Richter,
+Manfred Sailer, and Heike Winhart. 1997. Ein
+HPSG-fragment des Deutschen, Teil 1:
+Theo-
+rie. Technical report SFB 340 95, University of
+T¨ubingen, Germany.
+Markus H¨ohfeld and Gert Smolka. 1988. Deﬁnite
+Relations over Constraint Languages. Technical
+Report 53, IBM, Germany.
+Mark Johnson and Jochen D¨orre. 1995. Memoiza-
+tion of Coroutined Constraints. In ACL Proceed-
+ings, Cambridge, Massachusetts, USA.
+Paul King. 1994. Typed Feature Structures as De-
+scriptions. In Proceedings of of the 15th Confer-
+ence on Computational Linguistics, Kyoto, Japan.
+Detmar Meurers and Guido Minnen. 1997. A Com-
+putational Treatment of Lexical Rules in HPSG
+as Covariation in Lexical Entries. Computational
+Linguistics, 23(4).
+Guido Minnen. 1996. Magic for Filter Optimization
+in Dynamic Bottom-up Processing. In ACL Pro-
+ceedings, Santa Cruz, California, USA.
+Guido Minnen. 1998. Oﬀ-line Compilation for Eﬃ-
+cient Processing with Constraint-logic Grammars.
+Ph.D. thesis, University of T¨ubingen, Germany.
+Technical report SFB 340 nr. 130.
+Lee Naish. 1986. Negation and Control in Prolog.
+Springer-Verlag, Berlin, Germany.
+Ulf Nilsson and Jan Ma luszynski. 1995. Logic, Pro-
+gramming and Prolog. John Wiley & Sons, Chich-
+ester, UK, 2nd edition.
+Carl
+Pollard
+and
+Ivan
+Sag.
+1994.
+Head-
+Driven Phrase Structure Grammar. University of
+Chicago Press, Chicago, Illinois, USA.
+Raghu Ramakrishnan, Divesh Srivastava, and S. Su-
+darshan. 1992. Eﬃcient Bottom-up Evaluation of
+Logic Programs. In Joos Vandewalle (ed.), 1992.
+The State of the Art in Computer Systems and
+Software Engineering. Kluwer Academic Publish-
+ers.
+
+Stuart Shieber, Yves Schabes, and Fernando Pereira.
+1995. Principles and Implementation of Deductive
+Parsing. Journal of Logic Programming, 24(1-2).
+Gertjan van Noord. 1997. An Eﬃcient Implemen-
+tation of the Head-corner Parser. Computational
+Linguistics, 23(3).
