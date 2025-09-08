@@ -2,13 +2,15 @@ import whisper
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import FileResponse
 from transformers import pipeline
-from TTS.api import TTS  # Coqui TTS
+#from TTS.api import TTS  # Coqui TTS
 import torch
 import uvicorn
 from openai import OpenAI
 import tempfile
-import os
+import os,asyncio
+from gtts import gTTS
 from fastapi.responses import HTMLResponse
+# import edge_tts
 
 
 app = FastAPI()
@@ -26,14 +28,15 @@ client = OpenAI(
     api_key='ollama'  # required but unused for Ollama
 )
 
+# client = OpenAI(api_key=os.getenv("OPENAI"))
+
 # -----------------------------
 # Load Coqui TTS model
 # -----------------------------
-tts_model = TTS(
-    model_name="tts_models/en/ljspeech/tacotron2-DDC",
-    progress_bar=False
-)
-
+# tts_model = TTS(
+#     model_name="tts_models/en/ljspeech/tacotron2-DDC",
+#     progress_bar=False
+# )
 # Conversation memory
 conversation_history = []
 
@@ -52,7 +55,16 @@ def transcribe_audio(audio_bytes: bytes) -> str:
 
 def synthesize_speech(text: str, output_path: str) -> str:
     """Generate speech audio from text using Coqui TTS."""
-    tts_model.tts_to_file(text=text, file_path=output_path)
+    # tts_model.tts_to_file(text=text, file_path=output_path)
+    # async def _speak():
+    #     tts = edge_tts.Communicate(text, "en-US-AriaNeural")
+    #     await tts.save(output_path)
+
+    # asyncio.run(_speak())
+    # return output_path
+    
+    tts_model=gTTS(text=text, lang="en")
+    tts_model.save(output_path)
     return output_path
 
 
@@ -67,13 +79,20 @@ def generate_response(user_text: str) -> str:
         for turn in conversation_history[-5:]
     ]
 
-    # Get model response
+    #Get model response
     response = client.chat.completions.create(
         model="llama2",
         messages=messages
     )
     bot_response = response.choices[0].message.content
 
+    # Get model response
+    # response = client.chat.completions.create(
+    #     model="gpt-4o-mini",  # replace "llama2" with a valid OpenAI model
+    #     messages=messages
+    # )
+    # # Extract assistant message
+    # bot_response = response.choices[0].message.content
     # Append assistant turn
     conversation_history.append({"role": "assistant", "text": bot_response})
     return bot_response
