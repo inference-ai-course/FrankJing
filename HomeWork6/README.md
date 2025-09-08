@@ -85,17 +85,6 @@ This will test:
 - Function routing logic
 - Generate sample logs as required by the assignment
 
-## Project Structure
-
-```
-HomeWork6/
-├── voice_agent.py          # Main voice agent with function calling
-├── test_functions.py       # Test script for function calling
-├── requirements.txt        # Python dependencies
-├── README.md              # This file
-
-```
-
 ## Sample Test Logs
 
 ### Test 1: Math Query
