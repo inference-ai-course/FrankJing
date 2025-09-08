@@ -1,523 +1,304 @@
-#!/usr/bin/env python3
-"""
-Week 5: Hybrid Retrieval System
-===============================
-
-This module implements a hybrid retrieval system that combines:
-1. Dense vector search (FAISS) for semantic similarity
-2. Sparse keyword search (SQLite FTS5) for exact matches
-3. Score fusion strategies (weighted sum and reciprocal rank fusion)
-
-The system extends the Week 4 RAG pipeline by adding metadata storage
-and keyword search capabilities.
-"""
-
-import sqlite3
-import json
 import numpy as np
-import faiss
-from pathlib import Path
-from typing import List, Dict, Tuple, Optional, Union
-from sentence_transformers import SentenceTransformer
-import argparse
-from dataclasses import dataclass
-from datetime import datetime
 import logging
+from typing import List, Tuple, Dict, Optional
+from database_manager import DatabaseManager
+from embedding_manager import EmbeddingManager
+from faiss_manager import FAISSManager
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@dataclass
-class SearchResult:
-    """Represents a search result with metadata and scores."""
-    chunk_id: str
-    text: str
-    source_name: str
-    source_path: str
-    start_token: int
-    end_token: int
-    vector_score: float = 0.0
-    keyword_score: float = 0.0
-    hybrid_score: float = 0.0
-    rank: int = 0
-
-class HybridRetrievalSystem:
-    """Hybrid retrieval system combining FAISS and SQLite FTS5."""
-    
-    def __init__(self, db_path: str = "hybrid_index.db", faiss_path: str = "../HomeWork4/faiss.index"):
-        """Initialize the hybrid retrieval system.
+class HybridSearchSystem:
+    def __init__(self, db_path: str = "hybrid_search.db", model_name: str = "all-MiniLM-L6-v2"):
+        # Initialize managers
+        self.db_manager = DatabaseManager(db_path)
+        self.embedding_manager = EmbeddingManager(model_name)
+        self.faiss_manager = FAISSManager(self.embedding_manager.get_dimension())
         
-        Args:
-            db_path: Path to SQLite database
-            faiss_path: Path to existing FAISS index from Week 4
-        """
+        # Legacy compatibility
         self.db_path = db_path
-        self.faiss_path = faiss_path
-        self.model = None
-        self.faiss_index = None
-        self.embeddings = None
-        self.metadata = None
-        
-        # Initialize database
-        self._init_database()
-        
-    def _init_database(self):
-        """Initialize SQLite database with schema for documents and FTS5 chunks."""
-        conn = sqlite3.connect(self.db_path)
-        
-        # Create documents table for metadata
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS documents (
-                doc_id INTEGER PRIMARY KEY,
-                title TEXT,
-                author TEXT,
-                year INTEGER,
-                keywords TEXT,
-                source_path TEXT,
-                source_name TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Create FTS5 virtual table for full-text search on chunks
-        conn.execute("""
-            CREATE VIRTUAL TABLE IF NOT EXISTS doc_chunks USING fts5(
-                chunk_id,
-                content,
-                source_name,
-                content='documents',
-                content_rowid='doc_id'
-            )
-        """)
-        
-        # Create chunks table for storing chunk metadata
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS chunks (
-                chunk_id TEXT PRIMARY KEY,
-                doc_id INTEGER,
-                start_token INTEGER,
-                end_token INTEGER,
-                text TEXT,
-                FOREIGN KEY (doc_id) REFERENCES documents (doc_id)
-            )
-        """)
-        
-        conn.commit()
-        conn.close()
-        logger.info(f"Database initialized at {self.db_path}")
+        self.model = self.embedding_manager.model
+        self.dimension = self.embedding_manager.get_dimension()
+        self.faiss_index = self.faiss_manager.index
+        self.doc_id_to_faiss_idx = self.faiss_manager.doc_id_to_faiss_idx
+        self.faiss_idx_to_doc_id = self.faiss_manager.faiss_idx_to_doc_id
     
-    def load_existing_index(self, chunks_path: str = "../HomeWork4/chunks.jsonl", 
-                           embeddings_path: str = "../HomeWork4/embeddings.npy",
-                           meta_path: str = "../HomeWork4/meta.json"):
-        """Load existing FAISS index and embeddings from Week 4."""
-        try:
-            # Load metadata
-            with open(meta_path, 'r') as f:
-                self.metadata = json.load(f)
-            
-            # Load embeddings
-            self.embeddings = np.load(embeddings_path)
-            logger.info(f"Loaded embeddings: {self.embeddings.shape}")
-            
-            # Load FAISS index
-            self.faiss_index = faiss.read_index(self.faiss_path)
-            logger.info(f"Loaded FAISS index with {self.faiss_index.ntotal} vectors")
-            
-            # Load sentence transformer model
-            model_name = self.metadata.get('model', 'all-MiniLM-L6-v2')
-            self.model = SentenceTransformer(model_name)
-            logger.info(f"Loaded model: {model_name}")
-            
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to load existing index: {e}")
-            return False
-    
-    def build_hybrid_index(self, chunks_path: str = "../HomeWork4/chunks.jsonl"):
-        """Build hybrid index by importing existing chunks into SQLite."""
-        if not self.load_existing_index():
-            logger.error("Failed to load existing index")
-            return False
+    def add_documents(self, documents: List[Dict]):
+        """Add documents with metadata to the system."""
+        # Add documents to database
+        doc_ids = self.db_manager.add_documents(documents)
         
-        conn = sqlite3.connect(self.db_path)
+        # Generate embeddings
+        embeddings = self.embedding_manager.encode_documents(documents)
         
-        try:
-            # Clear existing data
-            conn.execute("DELETE FROM chunks")
-            conn.execute("DELETE FROM doc_chunks")
-            conn.execute("DELETE FROM documents")
-            
-            # Process chunks
-            doc_counter = 0
-            chunk_counter = 0
-            
-            with open(chunks_path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    chunk_data = json.loads(line.strip())
-                    
-                    # Extract document info
-                    source_name = chunk_data['source_name']
-                    source_path = chunk_data['source_path']
-                    
-                    # Check if document already exists
-                    cursor = conn.execute(
-                        "SELECT doc_id FROM documents WHERE source_name = ?", 
-                        (source_name,)
-                    )
-                    doc_row = cursor.fetchone()
-                    
-                    if doc_row is None:
-                        # Create new document entry
-                        doc_counter += 1
-                        conn.execute("""
-                            INSERT INTO documents (doc_id, title, author, year, keywords, source_path, source_name)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                            doc_counter,
-                            source_name.replace('.pdf', ''),  # Use filename as title
-                            "Unknown",  # We don't have author info
-                            2024,  # Default year
-                            "",  # No keywords extracted
-                            source_path,
-                            source_name
-                        ))
-                        doc_id = doc_counter
-                    else:
-                        doc_id = doc_row[0]
-                    
-                    # Insert chunk
-                    chunk_id = chunk_data['chunk_id']
-                    conn.execute("""
-                        INSERT INTO chunks (chunk_id, doc_id, start_token, end_token, text)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (
-                        chunk_id,
-                        doc_id,
-                        chunk_data['start_token'],
-                        chunk_data['end_token'],
-                        chunk_data['text']
-                    ))
-                    
-                    # Insert into FTS5 table
-                    conn.execute("""
-                        INSERT INTO doc_chunks (rowid, chunk_id, content, source_name)
-                        VALUES (?, ?, ?, ?)
-                    """, (
-                        doc_id,
-                        chunk_id,
-                        chunk_data['text'],
-                        source_name
-                    ))
-                    
-                    chunk_counter += 1
-            
-            conn.commit()
-            logger.info(f"Built hybrid index: {doc_counter} documents, {chunk_counter} chunks")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to build hybrid index: {e}")
-            conn.rollback()
-            return False
-        finally:
-            conn.close()
+        # Add to FAISS index
+        success = self.faiss_manager.add_embeddings(embeddings, doc_ids)
+        
+        # Store FAISS mappings in database
+        faiss_mappings = self.faiss_manager.doc_id_to_faiss_idx
+        for doc_id in doc_ids:
+            if doc_id in faiss_mappings:
+                self.db_manager.store_embedding_mapping(doc_id, faiss_mappings[doc_id])
+        
+        # Update legacy attributes for compatibility
+        self.faiss_index = self.faiss_manager.index
+        self.doc_id_to_faiss_idx = self.faiss_manager.doc_id_to_faiss_idx
+        self.faiss_idx_to_doc_id = self.faiss_manager.faiss_idx_to_doc_id
+        
+        logger.info(f"Added {len(documents)} documents to the system")
     
-    def vector_search(self, query: str, k: int = 10) -> List[SearchResult]:
+    def vector_search(self, query: str, k: int = 10) -> List[Tuple[int, float]]:
         """Perform semantic search using FAISS."""
-        if not self.model or not self.faiss_index:
-            raise ValueError("Model or FAISS index not loaded")
+        # Generate query embedding
+        query_embedding = self.embedding_manager.encode_query(query)
         
-        # Encode query
-        query_embedding = self.model.encode([query])
+        # Search using FAISS manager
+        results = self.faiss_manager.search(query_embedding, k)
         
-        # Search FAISS
-        distances, indices = self.faiss_index.search(query_embedding, k)
-        
-        # Get chunk data from database
-        conn = sqlite3.connect(self.db_path)
-        results = []
-        
-        for i, (distance, idx) in enumerate(zip(distances[0], indices[0])):
-            if idx == -1:  # Invalid index
-                continue
-                
-            cursor = conn.execute("""
-                SELECT c.chunk_id, c.text, c.start_token, c.end_token, 
-                       d.source_name, d.source_path
-                FROM chunks c
-                JOIN documents d ON c.doc_id = d.doc_id
-                WHERE c.chunk_id = (
-                    SELECT chunk_id FROM chunks LIMIT 1 OFFSET ?
-                )
-            """, (idx,))
-            
-            row = cursor.fetchone()
-            if row:
-                result = SearchResult(
-                    chunk_id=row[0],
-                    text=row[1],
-                    source_name=row[4],
-                    source_path=row[5],
-                    start_token=row[2],
-                    end_token=row[3],
-                    vector_score=1.0 / (1.0 + distance),  # Convert distance to similarity
-                    rank=i + 1
-                )
-                results.append(result)
-        
-        conn.close()
         return results
     
-    def keyword_search(self, query: str, k: int = 10) -> List[SearchResult]:
-        """Perform keyword search using SQLite FTS5."""
-        conn = sqlite3.connect(self.db_path)
-        
-        # FTS5 search with ranking
-        cursor = conn.execute("""
-            SELECT c.chunk_id, c.text, c.start_token, c.end_token,
-                   d.source_name, d.source_path,
-                   rank
-            FROM doc_chunks
-            JOIN chunks c ON doc_chunks.chunk_id = c.chunk_id
-            JOIN documents d ON c.doc_id = d.doc_id
-            WHERE doc_chunks MATCH ?
-            ORDER BY rank
-            LIMIT ?
-        """, (query, k))
-        
-        results = []
-        for i, row in enumerate(cursor):
-            # FTS5 rank is lower for better matches, convert to similarity score
-            keyword_score = 1.0 / (1.0 + row[6]) if row[6] > 0 else 1.0
-            
-            result = SearchResult(
-                chunk_id=row[0],
-                text=row[1],
-                source_name=row[4],
-                source_path=row[5],
-                start_token=row[2],
-                end_token=row[3],
-                keyword_score=keyword_score,
-                rank=i + 1
-            )
-            results.append(result)
-        
-        conn.close()
-        return results
+    def keyword_search(self, query: str, k: int = 10, method: str = "combined") -> List[Tuple[int, float]]:
+        """Perform keyword search using FTS5, BM25, or combined approach."""
+        if method == "fts5":
+            return self.db_manager.keyword_search(query, k)
+        elif method == "bm25":
+            return self.db_manager.bm25_search(query, k)
+        elif method == "combined":
+            return self.db_manager.combined_keyword_search(query, k)
+        else:
+            raise ValueError(f"Unknown keyword search method: {method}. Use 'fts5', 'bm25', or 'combined'.")
+
+    def fts5_search(self, query: str, k: int = 10) -> List[Tuple[int, float]]:
+        """Perform keyword search using SQLite FTS5 only."""
+        return self.db_manager.keyword_search(query, k)
+
+    def bm25_search(self, query: str, k: int = 10) -> List[Tuple[int, float]]:
+        """Perform keyword search using BM25 only."""
+        return self.db_manager.bm25_search(query, k)
+
+    def combined_keyword_search(self, query: str, k: int = 10, fts5_weight: float = 0.6, bm25_weight: float = 0.4) -> List[Tuple[int, float]]:
+        """Perform combined FTS5 + BM25 keyword search."""
+        return self.db_manager.combined_keyword_search(query, k, fts5_weight, bm25_weight)
     
-    def hybrid_search(self, query: str, k: int = 10, alpha: float = 0.6, 
-                     fusion_method: str = "weighted") -> List[SearchResult]:
-        """Perform hybrid search combining vector and keyword results.
+    def normalize_scores(self, scores: List[float]) -> List[float]:
+        """Normalize scores to [0, 1] range."""
+        if not scores:
+            return scores
         
-        Args:
-            query: Search query
-            k: Number of results to return
-            alpha: Weight for vector search (1-alpha for keyword search)
-            fusion_method: "weighted" or "rrf" (reciprocal rank fusion)
-        """
-        # Get results from both methods
-        vector_results = self.vector_search(query, k * 2)  # Get more for fusion
+        min_score = min(scores)
+        max_score = max(scores)
+        
+        if max_score == min_score:
+            return [1.0] * len(scores)
+        
+        return [(s - min_score) / (max_score - min_score) for s in scores]
+    
+    def weighted_hybrid_search(self, query: str, k: int = 10, alpha: float = 0.5) -> List[Tuple[int, float]]:
+        """Combine vector and keyword search using weighted sum."""
+        vector_results = dict(self.vector_search(query, k * 2))
+        keyword_results = dict(self.keyword_search(query, k * 2))
+        
+        # Get all unique document IDs
+        all_doc_ids = set(vector_results.keys()) | set(keyword_results.keys())
+        
+        # Normalize scores
+        if vector_results:
+            vec_scores = list(vector_results.values())
+            normalized_vec_scores = self.normalize_scores(vec_scores)
+            vector_results = dict(zip(vector_results.keys(), normalized_vec_scores))
+        
+        if keyword_results:
+            key_scores = list(keyword_results.values())
+            normalized_key_scores = self.normalize_scores(key_scores)
+            keyword_results = dict(zip(keyword_results.keys(), normalized_key_scores))
+        
+        # Combine scores
+        combined_results = []
+        for doc_id in all_doc_ids:
+            vec_score = vector_results.get(doc_id, 0.0)
+            key_score = keyword_results.get(doc_id, 0.0)
+            hybrid_score = alpha * vec_score + (1 - alpha) * key_score
+            combined_results.append((doc_id, hybrid_score))
+        
+        # Sort by score and return top-k
+        combined_results.sort(key=lambda x: x[1], reverse=True)
+        return combined_results[:k]
+    
+    def rrf_hybrid_search(self, query: str, k: int = 10, rrf_k: int = 60) -> List[Tuple[int, float]]:
+        """Combine vector and keyword search using Reciprocal Rank Fusion."""
+        vector_results = self.vector_search(query, k * 2)
         keyword_results = self.keyword_search(query, k * 2)
         
-        if fusion_method == "weighted":
-            return self._weighted_fusion(vector_results, keyword_results, k, alpha)
-        elif fusion_method == "rrf":
-            return self._reciprocal_rank_fusion(vector_results, keyword_results, k)
+        # Create rank dictionaries
+        vector_ranks = {doc_id: rank + 1 for rank, (doc_id, _) in enumerate(vector_results)}
+        keyword_ranks = {doc_id: rank + 1 for rank, (doc_id, _) in enumerate(keyword_results)}
+        
+        # Get all unique document IDs
+        all_doc_ids = set(vector_ranks.keys()) | set(keyword_ranks.keys())
+        
+        # Calculate RRF scores
+        rrf_results = []
+        for doc_id in all_doc_ids:
+            vec_rank = vector_ranks.get(doc_id, float('inf'))
+            key_rank = keyword_ranks.get(doc_id, float('inf'))
+            
+            rrf_score = 0
+            if vec_rank != float('inf'):
+                rrf_score += 1 / (rrf_k + vec_rank)
+            if key_rank != float('inf'):
+                rrf_score += 1 / (rrf_k + key_rank)
+            
+            rrf_results.append((doc_id, rrf_score))
+        
+        # Sort by RRF score and return top-k
+        rrf_results.sort(key=lambda x: x[1], reverse=True)
+        return rrf_results[:k]
+    
+    def get_document_details(self, doc_ids: List[int]) -> List[Dict]:
+        """Retrieve document details by IDs."""
+        return self.db_manager.get_document_details(doc_ids)
+    
+    def load_faiss_mappings(self):
+        """Load FAISS index mappings from database."""
+        mappings = self.db_manager.get_embedding_mappings()
+        
+        # Update FAISS manager mappings
+        for doc_id, faiss_idx in mappings.items():
+            self.faiss_manager.doc_id_to_faiss_idx[doc_id] = faiss_idx
+            self.faiss_manager.faiss_idx_to_doc_id[faiss_idx] = doc_id
+        
+        # Update legacy attributes for compatibility
+        self.doc_id_to_faiss_idx = self.faiss_manager.doc_id_to_faiss_idx
+        self.faiss_idx_to_doc_id = self.faiss_manager.faiss_idx_to_doc_id
+    
+    def save_index(self, faiss_path: str = "faiss_index.bin"):
+        """Save FAISS index to disk."""
+        self.faiss_manager.save_index(faiss_path)
+    
+    def load_index(self, faiss_path: str = "faiss_index.bin"):
+        """Load FAISS index from disk."""
+        success = self.faiss_manager.load_index(faiss_path)
+        if success:
+            self.load_faiss_mappings()
+            # Update legacy attributes for compatibility
+            self.faiss_index = self.faiss_manager.index
+            self.doc_id_to_faiss_idx = self.faiss_manager.doc_id_to_faiss_idx
+            self.faiss_idx_to_doc_id = self.faiss_manager.faiss_idx_to_doc_id
+            logger.info(f"FAISS index loaded from {faiss_path}")
         else:
-            raise ValueError(f"Unknown fusion method: {fusion_method}")
+            logger.warning(f"Failed to load FAISS index from {faiss_path}")
     
-    def _weighted_fusion(self, vector_results: List[SearchResult], 
-                        keyword_results: List[SearchResult], 
-                        k: int, alpha: float) -> List[SearchResult]:
-        """Combine results using weighted score fusion."""
-        # Create a dictionary to store combined results
-        combined = {}
-        
-        # Add vector results
-        for result in vector_results:
-            combined[result.chunk_id] = result
-            result.hybrid_score = alpha * result.vector_score
-        
-        # Add keyword results and combine scores
-        for result in keyword_results:
-            if result.chunk_id in combined:
-                # Combine scores
-                combined[result.chunk_id].keyword_score = result.keyword_score
-                combined[result.chunk_id].hybrid_score += (1 - alpha) * result.keyword_score
-            else:
-                # New result from keyword search
-                result.hybrid_score = (1 - alpha) * result.keyword_score
-                combined[result.chunk_id] = result
-        
-        # Sort by hybrid score and return top k
-        sorted_results = sorted(combined.values(), key=lambda x: x.hybrid_score, reverse=True)
-        return sorted_results[:k]
-    
-    def _reciprocal_rank_fusion(self, vector_results: List[SearchResult], 
-                               keyword_results: List[SearchResult], 
-                               k: int) -> List[SearchResult]:
-        """Combine results using reciprocal rank fusion."""
-        combined = {}
-        
-        # Add vector results with RRF scores
-        for i, result in enumerate(vector_results):
-            rrf_score = 1.0 / (60 + i + 1)  # RRF with k=60
-            if result.chunk_id in combined:
-                combined[result.chunk_id].hybrid_score += rrf_score
-            else:
-                result.hybrid_score = rrf_score
-                combined[result.chunk_id] = result
-        
-        # Add keyword results with RRF scores
-        for i, result in enumerate(keyword_results):
-            rrf_score = 1.0 / (60 + i + 1)
-            if result.chunk_id in combined:
-                combined[result.chunk_id].hybrid_score += rrf_score
-            else:
-                result.hybrid_score = rrf_score
-                combined[result.chunk_id] = result
-        
-        # Sort by hybrid score and return top k
-        sorted_results = sorted(combined.values(), key=lambda x: x.hybrid_score, reverse=True)
-        return sorted_results[:k]
-    
-    def evaluate_search(self, test_queries: List[Dict[str, any]], k: int = 3) -> Dict[str, float]:
-        """Evaluate search performance on test queries.
-        
-        Args:
-            test_queries: List of dicts with 'query' and 'relevant_chunks' keys
-            k: Number of top results to consider for evaluation
-        
-        Returns:
-            Dictionary with evaluation metrics
-        """
-        metrics = {
-            'vector_hit_rate': 0.0,
-            'keyword_hit_rate': 0.0,
-            'hybrid_hit_rate': 0.0,
-            'vector_recall': 0.0,
-            'keyword_recall': 0.0,
-            'hybrid_recall': 0.0
-        }
-        
-        total_queries = len(test_queries)
-        
-        for query_data in test_queries:
-            query = query_data['query']
-            relevant_chunks = set(query_data['relevant_chunks'])
-            
-            # Get results from each method
-            vector_results = self.vector_search(query, k)
-            keyword_results = self.keyword_search(query, k)
-            hybrid_results = self.hybrid_search(query, k)
-            
-            # Calculate hit rates (any relevant chunk in top-k)
-            vector_hit = any(result.chunk_id in relevant_chunks for result in vector_results)
-            keyword_hit = any(result.chunk_id in relevant_chunks for result in keyword_results)
-            hybrid_hit = any(result.chunk_id in relevant_chunks for result in hybrid_results)
-            
-            metrics['vector_hit_rate'] += vector_hit
-            metrics['keyword_hit_rate'] += keyword_hit
-            metrics['hybrid_hit_rate'] += hybrid_hit
-            
-            # Calculate recall (proportion of relevant chunks found)
-            vector_recall = len([r for r in vector_results if r.chunk_id in relevant_chunks]) / len(relevant_chunks)
-            keyword_recall = len([r for r in keyword_results if r.chunk_id in relevant_chunks]) / len(relevant_chunks)
-            hybrid_recall = len([r for r in hybrid_results if r.chunk_id in relevant_chunks]) / len(relevant_chunks)
-            
-            metrics['vector_recall'] += vector_recall
-            metrics['keyword_recall'] += keyword_recall
-            metrics['hybrid_recall'] += hybrid_recall
-        
-        # Average over all queries
-        for key in metrics:
-            metrics[key] /= total_queries
-        
-        return metrics
-
-def main():
-    """Main function for command-line interface."""
-    parser = argparse.ArgumentParser(description="Hybrid Retrieval System")
-    parser.add_argument("command", choices=["build", "search", "evaluate"], 
-                       help="Command to execute")
-    parser.add_argument("--query", "-q", help="Search query")
-    parser.add_argument("--k", type=int, default=3, help="Number of results")
-    parser.add_argument("--alpha", type=float, default=0.6, help="Vector search weight")
-    parser.add_argument("--fusion", choices=["weighted", "rrf"], default="weighted",
-                       help="Fusion method")
-    parser.add_argument("--db", default="hybrid_index.db", help="Database path")
-    
-    args = parser.parse_args()
-    
-    # Initialize system
-    system = HybridRetrievalSystem(db_path=args.db)
-    
-    if args.command == "build":
-        logger.info("Building hybrid index...")
-        if system.build_hybrid_index():
-            logger.info("Hybrid index built successfully!")
-        else:
-            logger.error("Failed to build hybrid index")
-    
-    elif args.command == "search":
-        if not args.query:
-            logger.error("Query required for search command")
-            return
-        
-        logger.info(f"Searching for: {args.query}")
-        
-        # Perform searches
-        vector_results = system.vector_search(args.query, args.k)
-        keyword_results = system.keyword_search(args.query, args.k)
-        hybrid_results = system.hybrid_search(args.query, args.k, args.alpha, args.fusion)
-        
-        # Display results
-        print(f"\n=== Vector Search Results (Top {args.k}) ===")
-        for i, result in enumerate(vector_results, 1):
-            print(f"{i}. {result.chunk_id} (score: {result.vector_score:.3f})")
-            print(f"   {result.text[:200]}...")
-            print()
-        
-        print(f"\n=== Keyword Search Results (Top {args.k}) ===")
-        for i, result in enumerate(keyword_results, 1):
-            print(f"{i}. {result.chunk_id} (score: {result.keyword_score:.3f})")
-            print(f"   {result.text[:200]}...")
-            print()
-        
-        print(f"\n=== Hybrid Search Results (Top {args.k}) ===")
-        for i, result in enumerate(hybrid_results, 1):
-            print(f"{i}. {result.chunk_id} (hybrid: {result.hybrid_score:.3f}, "
-                  f"vector: {result.vector_score:.3f}, keyword: {result.keyword_score:.3f})")
-            print(f"   {result.text[:200]}...")
-            print()
-    
-    elif args.command == "evaluate":
-        # Load test queries (you would define these based on your data)
-        test_queries = [
-            {
-                "query": "machine learning algorithms",
-                "relevant_chunks": ["paper_1:0-512", "paper_2:0-512"]  # Example
+    def get_system_stats(self) -> Dict:
+        """Get comprehensive system statistics."""
+        return {
+            'database_stats': {
+                'total_documents': self.db_manager.get_document_count(),
+                'total_embeddings': self.db_manager.get_embedding_count()
             },
-            {
-                "query": "neural networks",
-                "relevant_chunks": ["paper_3:0-512", "paper_4:0-512"]  # Example
-            }
-        ]
-        
-        logger.info("Evaluating search performance...")
-        metrics = system.evaluate_search(test_queries, args.k)
-        
-        print("\n=== Evaluation Results ===")
-        print(f"Hit Rate @{args.k}:")
-        print(f"  Vector:   {metrics['vector_hit_rate']:.3f}")
-        print(f"  Keyword:  {metrics['keyword_hit_rate']:.3f}")
-        print(f"  Hybrid:   {metrics['hybrid_hit_rate']:.3f}")
-        print(f"\nRecall @{args.k}:")
-        print(f"  Vector:   {metrics['vector_recall']:.3f}")
-        print(f"  Keyword:  {metrics['keyword_recall']:.3f}")
-        print(f"  Hybrid:   {metrics['hybrid_recall']:.3f}")
+            'embedding_stats': self.embedding_manager.get_model_info(),
+            'faiss_stats': self.faiss_manager.get_index_stats()
+        }
 
+
+# Sample usage
 if __name__ == "__main__":
-    main()
+    # Initialize the system
+    search_system = HybridSearchSystem()
+    
+    # Sample documents
+    sample_docs = [
+        {
+            'title': 'Introduction to Machine Learning',
+            'author': 'John Smith',
+            'year': 2023,
+            'keywords': 'machine learning, artificial intelligence, neural networks',
+            'chunk_text': 'Machine learning is a subset of artificial intelligence that focuses on algorithms that can learn from data without being explicitly programmed.'
+        },
+        {
+            'title': 'Deep Learning Fundamentals',
+            'author': 'Jane Doe',
+            'year': 2022,
+            'keywords': 'deep learning, neural networks, backpropagation',
+            'chunk_text': 'Deep learning uses neural networks with multiple layers to model and understand complex patterns in data.'
+        },
+        {
+            'title': 'Natural Language Processing',
+            'author': 'Bob Johnson',
+            'year': 2024,
+            'keywords': 'NLP, text processing, language models',
+            'chunk_text': 'Natural language processing enables computers to understand, interpret, and generate human language in a meaningful way.'
+        }
+    ]
+    
+    # Add documents
+    search_system.add_documents(sample_docs)
+    
+    # Test different search methods
+    query = "neural networks deep learning"
+    print(f"Query: {query}\n")
+    
+    # Vector search
+    vector_results = search_system.vector_search(query, k=3)
+    print("Vector Search Results:")
+    for doc_id, score in vector_results:
+        docs = search_system.get_document_details([doc_id])
+        if docs:
+            print(f"  Doc {doc_id}: {docs[0]['title']} (Score: {score:.4f})")
+    
+    # FTS5 search
+    fts5_results = search_system.fts5_search(query, k=3)
+    print("\nFTS5 Search Results:")
+    for doc_id, score in fts5_results:
+        docs = search_system.get_document_details([doc_id])
+        if docs:
+            print(f"  Doc {doc_id}: {docs[0]['title']} (Score: {score:.4f})")
+
+    # BM25 search
+    bm25_results = search_system.bm25_search(query, k=3)
+    print("\nBM25 Search Results:")
+    for doc_id, score in bm25_results:
+        docs = search_system.get_document_details([doc_id])
+        if docs:
+            print(f"  Doc {doc_id}: {docs[0]['title']} (Score: {score:.4f})")
+
+    # Combined keyword search (FTS5 + BM25)
+    combined_kw_results = search_system.combined_keyword_search(query, k=3)
+    print("\nCombined Keyword Search Results (FTS5 + BM25):")
+    for doc_id, score in combined_kw_results:
+        docs = search_system.get_document_details([doc_id])
+        if docs:
+            print(f"  Doc {doc_id}: {docs[0]['title']} (Score: {score:.4f})")
+
+    # Default keyword search (now uses combined method)
+    keyword_results = search_system.keyword_search(query, k=3)
+    print("\nDefault Keyword Search Results (Combined):")
+    for doc_id, score in keyword_results:
+        docs = search_system.get_document_details([doc_id])
+        if docs:
+            print(f"  Doc {doc_id}: {docs[0]['title']} (Score: {score:.4f})")
+    
+    # Weighted hybrid search
+    hybrid_results = search_system.weighted_hybrid_search(query, k=3, alpha=0.6)
+    print("\nWeighted Hybrid Search Results:")
+    for doc_id, score in hybrid_results:
+        docs = search_system.get_document_details([doc_id])
+        if docs:
+            print(f"  Doc {doc_id}: {docs[0]['title']} (Score: {score:.4f})")
+    
+    # RRF hybrid search
+    rrf_results = search_system.rrf_hybrid_search(query, k=3)
+    print("\nRRF Hybrid Search Results:")
+    for doc_id, score in rrf_results:
+        docs = search_system.get_document_details([doc_id])
+        if docs:
+            print(f"  Doc {doc_id}: {docs[0]['title']} (Score: {score:.4f})")
+    
+    # Print system stats
+    print("\nSystem Statistics:")
+    stats = search_system.get_system_stats()
+    print(f"  Documents: {stats['database_stats']['total_documents']}")
+    print(f"  Embeddings: {stats['database_stats']['total_embeddings']}")
+    print(f"  FAISS vectors: {stats['faiss_stats']['total_vectors']}")
+    
+    # Save the index
+    search_system.save_index()
