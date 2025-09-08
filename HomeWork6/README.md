@@ -93,7 +93,7 @@ HomeWork6/
 ├── test_functions.py       # Test script for function calling
 ├── requirements.txt        # Python dependencies
 ├── README.md              # This file
-└── CLAUDE.md              # Assignment instructions
+
 ```
 
 ## Sample Test Logs
