@@ -1,0 +1,64 @@
+[
+  {
+    "question": "What is the main contribution of the paper in optimizing reasoning and problem-solving capabilities of Large Language Models (LLMs)?",
+    "answer": "The paper proposes a novel cloud-edge collaborative architecture that uses a structured, multi-agent prompting framework consisting of GuideLLM, SolverLLM, and JudgeLLM to optimize reasoning and problem-solving in LLMs."
+  },
+  {
+    "question": "What roles do the three specialized components—GuideLLM, SolverLLM, and JudgeLLM—play in the proposed framework?",
+    "answer": "GuideLLM is a lightweight model deployed at the edge to provide methodological guidance, SolverLLM is a more powerful cloud-hosted model responsible for generating code solutions, and JudgeLLM is an automated evaluator that assesses the correctness and quality of the solutions."
+  },
+  {
+    "question": "What is RefactorCoderQA, and why was it introduced?",
+    "answer": "RefactorCoderQA is a comprehensive benchmark introduced to evaluate and enhance LLM performance across multi-domain coding tasks. It was motivated by limitations of existing benchmarks and systematically covers domains such as Software Engineering, Data Science, Machine Learning, and Natural Language Processing using authentic Stack Overflow coding challenges."
+  },
+  {
+    "question": "How does the proposed fine-tuned model, RefactorCoder-MoE, perform compared to other models?",
+    "answer": "RefactorCoder-MoE achieves state-of-the-art performance with an overall accuracy of 76.84%, significantly outperforming leading open-source and commercial baselines."
+  },
+  {
+    "question": "Besides accuracy, what additional evaluations were conducted to assess the effectiveness of the proposed system?",
+    "answer": "The paper includes human evaluations that validate the interpretability, accuracy, and practical relevance of the solutions, as well as system-level evaluations of throughput and latency to analyze performance characteristics and trade-offs."
+  },
+
+  {
+    "question": "What is the primary goal of the study presented in the paper?",
+    "answer": "The study aims to understand how developers interact with Large Language Models (LLMs) in practice and how conversational dynamics influence task outcomes, code quality, and software engineering workflows."
+  },
+  {
+    "question": "What is CodeChat, and what does it contain?",
+    "answer": "CodeChat is a large dataset comprising 82,845 real-world developer-LLM conversations. It contains 368,506 code snippets across more than 20 programming languages, derived from the WildChat dataset."
+  },
+  {
+    "question": "What did the analysis reveal about the structure and length of LLM responses compared to developer prompts?",
+    "answer": "LLM responses were found to be substantially longer than developer prompts, with a median token-length ratio of 14:1. Additionally, 68% of conversations were multi-turn, often evolving due to shifting requirements, incomplete prompts, or clarification requests."
+  },
+  {
+    "question": "Which topics were most frequently addressed in developer-LLM conversations, according to topic analysis?",
+    "answer": "The most frequent topics were web design, accounting for 9.6% of conversations, and neural network training, accounting for 8.7%."
+  },
+  {
+    "question": "What were some common language-specific issues identified in LLM-generated code?",
+    "answer": "Python and JavaScript code often included undefined variables (83.4% and 75.3% of snippets, respectively); Java code frequently lacked required comments (75.9%); C++ code often omitted headers (41.1%); and C# code frequently had unresolved namespaces (49.2%)."
+  },
+  {
+    "question": "What is RecoWorld, and why was it introduced?",
+    "answer": "RecoWorld is a blueprint for building simulated environments tailored to agentic recommender systems. It was introduced to provide agents with a training space where they can learn from errors without negatively impacting real users."
+  },
+  {
+    "question": "How does RecoWorld’s dual-view architecture work?",
+    "answer": "RecoWorld’s dual-view architecture involves a simulated user and an agentic recommender engaging in multi-turn interactions. The simulated user reviews recommendations, updates its mindset, and provides reflective instructions when disengagement is detected, while the agent adapts its recommendations using these instructions and reasoning traces."
+  },
+  {
+    "question": "What role do Large Language Models (LLMs) play in RecoWorld?",
+    "answer": "RecoWorld leverages the exceptional reasoning capabilities of modern LLMs to enable dynamic feedback loops where the recommender adapts its strategies based on user instructions and reasoning traces."
+  },
+  {
+    "question": "What types of content representations are explored in the user simulator?",
+    "answer": "The user simulator in RecoWorld explores diverse content representations, including text-based, multimodal, and semantic ID modeling."
+  },
+  {
+    "question": "How does RecoWorld support collaborative and population-level simulations?",
+    "answer": "RecoWorld supports multi-agent simulations that allow creators to simulate responses from targeted user populations. This enables the exploration of new interaction paradigms where 'user instructs, recommender responds,' optimizing user retention and engagement collaboratively."
+  }
+
+]

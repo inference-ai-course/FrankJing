@@ -1,0 +1,35 @@
+[
+  {
+    "question": "What roles do the three specialized components—GuideLLM, SolverLLM, and JudgeLLM—play in the proposed framework?",
+    "answer": "GuideLLM is a lightweight model deployed at the edge to provide methodological guidance, SolverLLM is a more powerful cloud-hosted model responsible for generating code solutions, and JudgeLLM is an automated evaluator that assesses the correctness and quality of the solutions."
+  },
+  {
+    "question": "What is RefactorCoderQA, and why was it introduced?",
+    "answer": "RefactorCoderQA is a comprehensive benchmark introduced to evaluate and enhance LLM performance across multi-domain coding tasks. It was motivated by limitations of existing benchmarks and systematically covers domains such as Software Engineering, Data Science, Machine Learning, and Natural Language Processing using authentic Stack Overflow coding challenges."
+  },
+  {
+    "question": "What is CodeChat, and what does it contain?",
+    "answer": "CodeChat is a large dataset comprising 82,845 real-world developer-LLM conversations. It contains 368,506 code snippets across more than 20 programming languages, derived from the WildChat dataset."
+  },
+  {
+    "question": "What were some common language-specific issues identified in LLM-generated code?",
+    "answer": "Python and JavaScript code often included undefined variables (83.4% and 75.3% of snippets, respectively); Java code frequently lacked required comments (75.9%); C++ code often omitted headers (41.1%); and C# code frequently had unresolved namespaces (49.2%)."
+  },
+  {
+    "question": "What is RecoWorld, and why was it introduced?",
+    "answer": "RecoWorld is a blueprint for building simulated environments tailored to agentic recommender systems. It was introduced to provide agents with a training space where they can learn from errors without negatively impacting real users."
+  },
+  {
+    "question": "How does RecoWorld’s dual-view architecture work?",
+    "answer": "RecoWorld’s dual-view architecture involves a simulated user and an agentic recommender engaging in multi-turn interactions. The simulated user reviews recommendations, updates its mindset, and provides reflective instructions when disengagement is detected, while the agent adapts its recommendations using these instructions and reasoning traces."
+  },
+  {
+    "question": "What role do Large Language Models (LLMs) play in RecoWorld?",
+    "answer": "RecoWorld leverages the exceptional reasoning capabilities of modern LLMs to enable dynamic feedback loops where the recommender adapts its strategies based on user instructions and reasoning traces."
+  },
+  {
+    "question": "How does RecoWorld support collaborative and population-level simulations?",
+    "answer": "RecoWorld supports multi-agent simulations that allow creators to simulate responses from targeted user populations. This enables the exploration of new interaction paradigms where 'user instructs, recommender responds,' optimizing user retention and engagement collaboratively."
+  }
+
+]
